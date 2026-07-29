@@ -1,0 +1,40 @@
+# === Next.js (frontend) ===
+code/front/node_modules
+code/front/.next
+code/front/out
+code/front/.pnp
+code/front/.yarn/*
+!code/front/.yarn/patches
+code/front/.yarn/plugins
+code/front/.yarn/releases
+code/front/.yarn/versions
+code/front/coverage
+code/front/build
+code/front/.DS_Store
+code/front/*.pem
+code/front/npm-debug.log*
+code/front/yarn-debug.log*
+code/front/yarn-error.log*
+code/front/.pnpm-debug.log*
+code/front/.env
+code/front/.env.local
+code/front/.env.*.local
+code/front/.vercel
+code/front/*.tsbuildinfo
+code/front/next-env.d.ts
+
+# === Backend ===
+code/backend/.env
+code/backend/.env.*
+!code/backend/.env.example
+
+# === Misc ===
+.DS_Store
+*.pem
+node_modules/
+.next/
+.claude/
+storage/*
+!storage/.gitkeep
+.superpowers/
+.playwright-mcp/

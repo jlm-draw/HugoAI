@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hugoai-postgres
+    environment:
+      POSTGRES_USER: hugoai
+      POSTGRES_PASSWORD: "ATx9/G3mfi4KS2RtQadKuXOXa/Ox2GfG"
+      POSTGRES_DB: hugoai
+    ports:
+      - "29981:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: hugoai-redis
+    ports:
+      - "37488:6379"
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

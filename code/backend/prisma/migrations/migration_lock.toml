@@ -1,0 +1,4 @@
+# Please refer to https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#prisma-schema-basics
+# for the Prisma schema docs and more information about the "prisma" field.
+
+provider = "postgresql"
