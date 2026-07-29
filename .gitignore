@@ -1,41 +1,40 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# === Next.js (frontend) ===
+code/front/node_modules
+code/front/.next
+code/front/out
+code/front/.pnp
+code/front/.yarn/*
+!code/front/.yarn/patches
+code/front/.yarn/plugins
+code/front/.yarn/releases
+code/front/.yarn/versions
+code/front/coverage
+code/front/build
+code/front/.DS_Store
+code/front/*.pem
+code/front/npm-debug.log*
+code/front/yarn-debug.log*
+code/front/yarn-error.log*
+code/front/.pnpm-debug.log*
+code/front/.env
+code/front/.env.local
+code/front/.env.*.local
+code/front/.vercel
+code/front/*.tsbuildinfo
+code/front/next-env.d.ts
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# === Backend ===
+code/backend/.env
+code/backend/.env.*
+!code/backend/.env.example
 
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+# === Misc ===
 .DS_Store
 *.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+node_modules/
+.next/
+.claude/
+storage/*
+!storage/.gitkeep
+.superpowers/
+.playwright-mcp/

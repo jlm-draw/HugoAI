@@ -1,0 +1,11 @@
+node_modules
+.next
+.env.local
+.env
+.git
+.superpowers
+storage/*
+!storage/.gitkeep
+*.log
+docs
+.claude
