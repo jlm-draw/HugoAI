@@ -52,8 +52,8 @@ export async function getCurrentUserWithPerms() {
   if (!user || !user.isActive) return null;
 
   const permissions = new Set<string>();
-  user.userRoles.forEach((ur) => {
-    ur.role.rolePerms.forEach((rp) => permissions.add(rp.permission.code));
+  user.userRoles.forEach((ur: { role: { rolePerms: { permission: { code: string } }[] } }) => {
+    ur.role.rolePerms.forEach((rp: { permission: { code: string } }) => permissions.add(rp.permission.code));
   });
 
   return { ...user, permissions };

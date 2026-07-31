@@ -21,7 +21,7 @@ export async function NewsPreview() {
         </p>
       ) : (
         <ul className="space-y-0">
-          {articles.map((article) => (
+          {articles.map((article: { id: string; title: string; url: string; source: string; publishedAt: Date | null }) => (
             <li key={article.id} className="py-2.5 border-b border-gray-50 last:border-0">
               <a
                 href={article.url}

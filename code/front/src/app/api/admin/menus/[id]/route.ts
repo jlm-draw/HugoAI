@@ -56,7 +56,7 @@ export async function DELETE(
 
 async function getDescendantIds(id: string): Promise<string[]> {
   const children = await prisma.menu.findMany({ where: { parentId: id } });
-  let ids = children.map((c) => c.id);
+  let ids = children.map((c: { id: string }) => c.id);
   for (const child of children) {
     ids = ids.concat(await getDescendantIds(child.id));
   }

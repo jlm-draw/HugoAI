@@ -15,9 +15,9 @@ export async function GET() {
 
   const buildTree = (parentId: string | null): MenuNode[] => {
     return menus
-      .filter((m) => (m.parentId ?? null) === parentId)
-      .sort((a, b) => a.sort - b.sort)
-      .map((m) => ({
+      .filter((m: { parentId: string | null }) => (m.parentId ?? null) === parentId)
+      .sort((a: { sort: number }, b: { sort: number }) => a.sort - b.sort)
+      .map((m: { id: string; name: string; path: string | null; icon: string | null; sort: number; isVisible: boolean; permissionCode: string | null }) => ({
         id: m.id,
         name: m.name,
         path: m.path,
