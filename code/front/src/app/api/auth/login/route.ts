@@ -52,8 +52,8 @@ export async function POST(request: Request) {
     }
 
     const permissions = new Set<string>();
-    user.userRoles.forEach((ur) => {
-      ur.role.rolePerms.forEach((rp) => {
+    user.userRoles.forEach((ur: { role: { rolePerms: { permission: { code: string } }[] } }) => {
+      ur.role.rolePerms.forEach((rp: { permission: { code: string } }) => {
         permissions.add(rp.permission.code);
       });
     });

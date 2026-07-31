@@ -1,73 +1,64 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { requireSuperAdmin } from "@/lib/rbac";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session) return new NextResponse('Unauthorized', { status: 401 })
+  const check = await requireSuperAdmin();
+  if ("error" in check) return check.error;
 
-  try {
-    const menu = await db.menu.findUnique({
-      where: { id: params.id }
-    })
-    
-    if (!menu) {
-      return new NextResponse('Menu not found', { status: 404 })
+  const { id } = await params;
+  const body = await request.json();
+  const { name, path, icon, sort, parentId, isVisible, permissionCode } = body;
+
+  if (parentId) {
+    if (parentId === id) {
+      return NextResponse.json(
+        { error: "不能将自身设为父菜单" },
+        { status: 400 }
+      );
     }
-
-    return NextResponse.json(menu)
-  } catch (error) {
-    console.error('Error fetching menu:', error)
-    return new NextResponse('Internal Server Error', { status: 500 })
+    const children = await getDescendantIds(id);
+    if (children.includes(parentId)) {
+      return NextResponse.json(
+        { error: "不能将子菜单设为父菜单" },
+        { status: 400 }
+      );
+    }
   }
-}
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const session = await getServerSession(authOptions)
-  if (!session) return new NextResponse('Unauthorized', { status: 401 })
+  const data: Record<string, unknown> = {};
+  if (name !== undefined) data.name = name;
+  if (path !== undefined) data.path = path || null;
+  if (icon !== undefined) data.icon = icon || null;
+  if (sort !== undefined) data.sort = sort;
+  if (parentId !== undefined) data.parentId = parentId || null;
+  if (isVisible !== undefined) data.isVisible = !!isVisible;
+  if (permissionCode !== undefined) data.permissionCode = permissionCode || null;
 
-  try {
-    const body = await request.json()
-    const updatedMenu = await db.menu.update({
-      where: { id: params.id },
-      data: {
-        name: body.name,
-        path: body.path,
-        icon: body.icon,
-        order: body.order,
-        parentId: body.parentId || null
-      }
-    })
-
-    return NextResponse.json(updatedMenu)
-  } catch (error) {
-    console.error('Error updating menu:', error)
-    return new NextResponse('Internal Server Error', { status: 500 })
-  }
+  const menu = await prisma.menu.update({ where: { id }, data });
+  return NextResponse.json({ menu });
 }
 
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session) return new NextResponse('Unauthorized', { status: 401 })
+  const check = await requireSuperAdmin();
+  if ("error" in check) return check.error;
 
-  try {
-    await db.menu.delete({
-      where: { id: params.id }
-    })
+  const { id } = await params;
+  await prisma.menu.delete({ where: { id } });
+  return NextResponse.json({ success: true });
+}
 
-    return new NextResponse(null, { status: 204 })
-  } catch (error) {
-    console.error('Error deleting menu:', error)
-    return new NextResponse('Internal Server Error', { status: 500 })
+async function getDescendantIds(id: string): Promise<string[]> {
+  const children = await prisma.menu.findMany({ where: { parentId: id } });
+  let ids = children.map((c: { id: string }) => c.id);
+  for (const child of children) {
+    ids = ids.concat(await getDescendantIds(child.id));
   }
+  return ids;
 }
