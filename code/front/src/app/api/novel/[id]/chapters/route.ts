@@ -12,7 +12,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "小说不存在" }, { status: 404 });
   }
 
-  let body: { title?: unknown };
+  let body: { title?: unknown; summary?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -23,6 +23,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!title || title.length > 100) {
     return NextResponse.json({ error: "章节标题需在 1-100 字之间" }, { status: 400 });
   }
+  const summary =
+    typeof body.summary === "string" ? body.summary.trim().slice(0, 2000) || null : null;
 
   const last = await prisma.chapter.findFirst({
     where: { novelId: id },
@@ -31,7 +33,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   });
 
   const chapter = await prisma.chapter.create({
-    data: { novelId: id, title, sort: (last?.sort ?? -1) + 1 },
+    data: { novelId: id, title, summary, sort: (last?.sort ?? -1) + 1 },
   });
 
   return NextResponse.json(

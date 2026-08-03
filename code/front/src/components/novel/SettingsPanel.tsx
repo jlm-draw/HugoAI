@@ -17,10 +17,13 @@ interface Props {
   characters: CharacterItem[];
   relations: RelationItem[];
   chapters: ChapterItem[];
+  /** 小说简介，作为 AI 写大纲的剧情方向默认值 */
+  novelDescription: string;
   onWorldSaved: (w: WorldSettingData) => void;
   onCharactersChanged: (c: CharacterItem[]) => void;
   onRelationsChanged: (r: RelationItem[]) => void;
   onSummarySaved: (id: string, summary: string) => void;
+  onChaptersCreated: (chapters: ChapterItem[]) => void;
   onDeleteChapter: (id: string) => void;
 }
 
@@ -53,7 +56,9 @@ export function SettingsPanel(props: Props) {
           <OutlinePanel
             novelId={props.novelId}
             chapters={props.chapters}
+            novelDescription={props.novelDescription}
             onSummarySaved={props.onSummarySaved}
+            onChaptersCreated={props.onChaptersCreated}
           />
           {props.chapters.length > 0 && (
             <button

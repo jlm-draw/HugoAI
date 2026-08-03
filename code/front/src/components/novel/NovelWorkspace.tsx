@@ -82,6 +82,19 @@ export function NovelWorkspace({ novelId }: Props) {
     setActiveId(json.chapter.id);
   }
 
+  /** AI 大纲采纳后批量创建的章节并入状态 */
+  const handleChaptersCreated = useCallback((created: ChapterItem[]) => {
+    setData((d) =>
+      d
+        ? {
+            ...d,
+            chapters: [...d.chapters, ...created],
+            novel: { ...d.novel, chapterCount: d.chapters.length + created.length },
+          }
+        : d
+    );
+  }, []);
+
   async function deleteChapter(id: string) {
     if (!confirm("确定删除该章节吗？本章内容无法恢复。")) return;
     const res = await fetch(`/api/novel/${novelId}/chapters/${id}`, { method: "DELETE" });
@@ -205,6 +218,7 @@ export function NovelWorkspace({ novelId }: Props) {
           characters={data.characters}
           relations={data.relations}
           chapters={data.chapters}
+          novelDescription={data.novel.description ?? ""}
           onWorldSaved={(worldSetting: WorldSettingData) =>
             setData((d) => (d ? { ...d, worldSetting } : d))
           }
@@ -215,6 +229,7 @@ export function NovelWorkspace({ novelId }: Props) {
             setData((d) => (d ? { ...d, relations } : d))
           }
           onSummarySaved={(id, summary) => patchChapter(id, { summary })}
+          onChaptersCreated={handleChaptersCreated}
           onDeleteChapter={deleteChapter}
         />
       </div>

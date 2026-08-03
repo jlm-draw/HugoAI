@@ -171,7 +171,13 @@ export function ChapterEditor({ novelId, chapter, characters, onChapterUpdated }
         <EditorContent editor={editor} className="tiptap-wrap mx-auto max-w-3xl" />
       </div>
 
-      <AiPanel novelId={novelId} chapterId={chapter.id} editor={editor} characters={characters} />
+      <AiPanel
+        novelId={novelId}
+        chapterId={chapter.id}
+        editor={editor}
+        characters={characters}
+        chapterSummary={chapter.summary}
+      />
     </div>
   );
 }

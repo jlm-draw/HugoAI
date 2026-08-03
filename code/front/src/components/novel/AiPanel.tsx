@@ -23,9 +23,10 @@ import {
   type PolishMode,
 } from "@/services/novel/types";
 
-type AiMode = "continue" | "scene" | "polish" | "dialogue" | "consistency";
+type AiMode = "write" | "continue" | "scene" | "polish" | "dialogue" | "consistency";
 
 const MODES: Array<{ key: AiMode; label: string }> = [
+  { key: "write", label: "AI 写文" },
   { key: "continue", label: "续写" },
   { key: "scene", label: "场景写作" },
   { key: "polish", label: "润色" },
@@ -44,6 +45,8 @@ interface Props {
   chapterId: string;
   editor: Editor;
   characters: CharacterItem[];
+  /** 本章大纲（章节 summary），作为 AI 写文的默认输入 */
+  chapterSummary: string | null;
 }
 
 /** 把纯文本按空行拆成 Tiptap 段落节点 */
@@ -58,9 +61,10 @@ function textToContent(text: string) {
     }));
 }
 
-export function AiPanel({ novelId, chapterId, editor, characters }: Props) {
+export function AiPanel({ novelId, chapterId, editor, characters, chapterSummary }: Props) {
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<AiMode>("continue");
+  const [mode, setMode] = useState<AiMode>("write");
+  const [writeOutline, setWriteOutline] = useState(chapterSummary ?? "");
   const [scene, setScene] = useState("");
   const [polishMode, setPolishMode] = useState<PolishMode>("style");
   const [polishNote, setPolishNote] = useState("");
@@ -84,6 +88,9 @@ export function AiPanel({ novelId, chapterId, editor, characters }: Props) {
     setIssues(null);
     setOutput("");
     setSelection(next === "polish" || next === "continue" ? captureSelection() : null);
+    if (next === "write") {
+      setWriteOutline((cur) => cur.trim() ? cur : (chapterSummary ?? ""));
+    }
   }
 
   async function runStream(path: string, body: unknown) {
@@ -112,7 +119,13 @@ export function AiPanel({ novelId, chapterId, editor, characters }: Props) {
 
   async function handleRun() {
     const base = `/api/novel/${novelId}/ai`;
-    if (mode === "continue") {
+    if (mode === "write") {
+      if (!writeOutline.trim()) {
+        setError("请填写本章大纲，或先在右侧「大纲」标签用 AI 生成");
+        return;
+      }
+      runStream(`${base}/write`, { chapterId, outline: writeOutline.trim() });
+    } else if (mode === "continue") {
       runStream(`${base}/continue`, { chapterId, selection: selection?.text });
     } else if (mode === "scene") {
       if (!scene.trim()) {
@@ -170,6 +183,11 @@ export function AiPanel({ novelId, chapterId, editor, characters }: Props) {
     editor.chain().focus("end").insertContent(textToContent(output)).run();
   }
 
+  /** 用生成结果替换整章正文（保留章节标题，触发 onUpdate 自动保存） */
+  function replaceWholeChapter() {
+    editor.chain().focus().selectAll().deleteSelection().insertContent(textToContent(output)).run();
+  }
+
   function insertAfterSelection() {
     if (!selection) return appendToEnd();
     editor
@@ -219,6 +237,19 @@ export function AiPanel({ novelId, chapterId, editor, characters }: Props) {
               </button>
             ))}
           </div>
+
+          {mode === "write" && (
+            <div className="space-y-2">
+              <Textarea
+                value={writeOutline}
+                onChange={(e) => setWriteOutline(e.target.value)}
+                rows={3}
+                placeholder="本章大纲：主要情节、冲突、出场人物…（可在右侧「大纲」标签用 AI 生成）"
+                maxLength={2000}
+              />
+              <p className="text-xs text-gray-400">AI 将根据小说设定、上一章结尾与本章大纲写出整章正文</p>
+            </div>
+          )}
 
           {mode === "continue" && (
             <p className="text-xs text-gray-400">
@@ -320,7 +351,16 @@ export function AiPanel({ novelId, chapterId, editor, characters }: Props) {
                 {output}
               </div>
               <div className="flex flex-wrap gap-2">
-                {mode === "polish" ? (
+                {mode === "write" ? (
+                  <>
+                    <Button size="sm" variant="outline" onClick={replaceWholeChapter} disabled={busy}>
+                      替换全章正文
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={appendToEnd} disabled={busy}>
+                      追加到章末
+                    </Button>
+                  </>
+                ) : mode === "polish" ? (
                   <Button
                     size="sm"
                     variant="outline"

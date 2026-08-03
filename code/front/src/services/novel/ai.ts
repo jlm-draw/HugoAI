@@ -3,11 +3,14 @@ import {
   SYSTEM_CONSISTENCY,
   SYSTEM_CONTINUE,
   SYSTEM_DIALOGUE,
+  SYSTEM_OUTLINE,
   SYSTEM_POLISH,
   SYSTEM_SCENE,
   SYSTEM_SUGGEST,
+  SYSTEM_WRITE,
 } from "./prompts";
 import type {
+  ChapterOutlineItem,
   ConsistencyIssue,
   NovelSuggestion,
   PolishMode,
@@ -176,6 +179,54 @@ export async function* streamScene(
     temperature: 0.9,
     maxTokens: 2500,
   });
+}
+
+/** AI 写文：根据本章大纲写出整章正文 */
+export async function* streamWrite(
+  ctx: StoryContext,
+  opts: { chapterTitle: string; outline: string; prevChapterText?: string | null }
+): AsyncGenerator<string> {
+  const parts = [buildSettingBlock(ctx), `\n【当前章节】${opts.chapterTitle}`];
+  if (opts.prevChapterText?.trim()) {
+    parts.push(`【上一章结尾】\n${tail(opts.prevChapterText, PREV_TAIL_CHARS)}`);
+  }
+  parts.push(`【本章大纲】\n${opts.outline}`);
+  parts.push("\n请根据本章大纲写出这一章的完整正文。");
+
+  yield* chatStream([{ role: "user", content: parts.join("\n") }], {
+    systemPrompt: SYSTEM_WRITE,
+    temperature: 0.9,
+    maxTokens: 3000,
+  });
+}
+
+/** AI 写大纲：规划整书章节（每章标题 + 大概内容） */
+export async function generateOutline(
+  ctx: StoryContext,
+  opts: { chapterCount: number; direction?: string }
+): Promise<ChapterOutlineItem[]> {
+  const parts = [buildSettingBlock(ctx)];
+  if (opts.direction?.trim()) {
+    parts.push(`\n【整体剧情方向】\n${opts.direction.trim()}`);
+  }
+  parts.push(`\n请规划恰好 ${opts.chapterCount} 章的章节大纲。`);
+
+  const result = await chat([{ role: "user", content: parts.join("\n") }], {
+    systemPrompt: SYSTEM_OUTLINE,
+    temperature: 0.8,
+    maxTokens: 4000,
+  });
+
+  const parsed = extractJson(result);
+  if (!Array.isArray(parsed)) throw new Error("AI 输出格式异常，请重试");
+
+  return parsed
+    .map((item: { title?: unknown; summary?: unknown }) => ({
+      title: str(item?.title).trim(),
+      summary: str(item?.summary).trim(),
+    }))
+    .filter((item) => item.title)
+    .slice(0, opts.chapterCount);
 }
 
 const POLISH_INSTRUCTIONS: Record<PolishMode, string> = {

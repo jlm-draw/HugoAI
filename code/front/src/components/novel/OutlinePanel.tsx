@@ -1,20 +1,33 @@
 "use client";
 
 import { useState } from "react";
+import { Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import type { ChapterItem } from "@/services/novel/types";
+import { OutlineAiDialog } from "./OutlineAiDialog";
 
 interface Props {
   novelId: string;
   chapters: ChapterItem[];
+  /** 小说简介，作为 AI 写大纲的剧情方向默认值 */
+  novelDescription: string;
   onSummarySaved: (id: string, summary: string) => void;
+  onChaptersCreated: (chapters: ChapterItem[]) => void;
 }
 
-/** 大纲面板：按章节顺序编辑各章摘要，失焦自动保存 */
-export function OutlinePanel({ novelId, chapters, onSummarySaved }: Props) {
+/** 大纲面板：按章节顺序编辑各章摘要，失焦自动保存；支持 AI 生成整书大纲 */
+export function OutlinePanel({
+  novelId,
+  chapters,
+  novelDescription,
+  onSummarySaved,
+  onChaptersCreated,
+}: Props) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
 
   async function save(id: string) {
     const summary = drafts[id];
@@ -43,12 +56,43 @@ export function OutlinePanel({ novelId, chapters, onSummarySaved }: Props) {
     }
   }
 
+  const aiButton = (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => setAiDialogOpen(true)}
+      className="w-full gap-1.5"
+    >
+      <Sparkles size={13} className="text-blue-500" /> AI 写大纲
+    </Button>
+  );
+
+  const dialog = (
+    <OutlineAiDialog
+      open={aiDialogOpen}
+      novelId={novelId}
+      defaultDirection={novelDescription}
+      existingChapterCount={chapters.length}
+      onClose={() => setAiDialogOpen(false)}
+      onAdopted={onChaptersCreated}
+    />
+  );
+
   if (chapters.length === 0) {
-    return <p className="py-8 text-center text-xs text-gray-400">暂无章节</p>;
+    return (
+      <div className="space-y-3">
+        {aiButton}
+        <p className="py-8 text-center text-xs text-gray-400">
+          暂无章节，可用「AI 写大纲」一键规划全书
+        </p>
+        {dialog}
+      </div>
+    );
   }
 
   return (
     <div className="space-y-3">
+      {aiButton}
       {chapters.map((chapter, index) => (
         <div key={chapter.id} className="rounded-lg border p-2.5">
           <p className="mb-1.5 flex items-center justify-between text-xs font-medium text-gray-700">
@@ -69,6 +113,7 @@ export function OutlinePanel({ novelId, chapters, onSummarySaved }: Props) {
           />
         </div>
       ))}
+      {dialog}
     </div>
   );
 }

@@ -95,6 +95,12 @@ export interface NovelSuggestion {
   characters: SuggestedCharacter[];
 }
 
+/** AI 生成的章节大纲条目（标题 + 大概内容） */
+export interface ChapterOutlineItem {
+  title: string;
+  summary: string;
+}
+
 /** 润色模式 */
 export type PolishMode = "style" | "condense" | "expand";
 
