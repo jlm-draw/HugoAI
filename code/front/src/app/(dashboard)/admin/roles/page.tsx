@@ -74,17 +74,20 @@ export default function RolesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
+  // 首屏 loading 初值为 true，await 前不做同步 setState（react-hooks/set-state-in-effect）
   const loadData = useCallback(async () => {
-    setLoading(true);
-    const [rolesRes, permsRes] = await Promise.all([
-      fetch("/api/admin/roles"),
-      fetch("/api/admin/permissions"),
-    ]);
-    const rolesData = await rolesRes.json();
-    const permsData = await permsRes.json();
-    setRoles(rolesData.roles || []);
-    setPermissions(permsData.permissions || []);
-    setLoading(false);
+    try {
+      const [rolesRes, permsRes] = await Promise.all([
+        fetch("/api/admin/roles"),
+        fetch("/api/admin/permissions"),
+      ]);
+      const rolesData = await rolesRes.json();
+      const permsData = await permsRes.json();
+      setRoles(rolesData.roles || []);
+      setPermissions(permsData.permissions || []);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

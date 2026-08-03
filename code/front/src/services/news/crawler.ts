@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { redis } from "@/lib/redis";
-import type { NewsItem, NewsCrawler, CrawlerResult } from "./types";
+import type { NewsCrawler, CrawlerResult } from "./types";
 
 const LAST_CRAWL_KEY = "news:last_crawl";
 

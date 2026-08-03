@@ -1,5 +1,8 @@
 generator client {
   provider = "prisma-client-js"
+  // 显式输出到前端项目的 node_modules，保证 prisma generate / db:push
+  // 更新的 client 与 Next.js 应用实际解析到的副本一致
+  output = "../../front/node_modules/.prisma/client"
 }
 
 datasource db {
@@ -20,6 +23,7 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   userRoles UserRole[]
+  novels    Novel[]
 
   @@index([username])
   @@index([isActive])
@@ -118,4 +122,86 @@ model NewsArticle {
   @@index([source])
   @@index([publishedAt])
   @@index([createdAt])
+}
+
+model Novel {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  genre       String
+  cover       String?
+  wordCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  worldSetting WorldSetting?
+  characters   Character[]
+  relations    CharacterRelation[]
+  chapters     Chapter[]
+
+  @@index([userId])
+}
+
+model WorldSetting {
+  id         String   @id @default(cuid())
+  novelId    String   @unique
+  background String   @default("")
+  timeline   String   @default("")
+  geography  String   @default("")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  novel Novel @relation(fields: [novelId], references: [id], onDelete: Cascade)
+}
+
+model Character {
+  id          String   @id @default(cuid())
+  novelId     String
+  name        String
+  avatar      String?
+  personality String?
+  background  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  novel           Novel               @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  fromRelations   CharacterRelation[] @relation("FromCharacter")
+  toRelations     CharacterRelation[] @relation("ToCharacter")
+
+  @@index([novelId])
+}
+
+model CharacterRelation {
+  id              String   @id @default(cuid())
+  novelId         String
+  fromCharacterId String
+  toCharacterId   String
+  label           String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  novel        Novel     @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  fromCharacter Character @relation("FromCharacter", fields: [fromCharacterId], references: [id], onDelete: Cascade)
+  toCharacter   Character @relation("ToCharacter", fields: [toCharacterId], references: [id], onDelete: Cascade)
+
+  @@index([novelId])
+}
+
+model Chapter {
+  id        String   @id @default(cuid())
+  novelId   String
+  title     String
+  summary   String?
+  content   Json?
+  text      String?
+  wordCount Int      @default(0)
+  sort      Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  novel Novel @relation(fields: [novelId], references: [id], onDelete: Cascade)
+
+  @@index([novelId, sort])
 }

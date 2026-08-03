@@ -31,13 +31,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface UserRole {
@@ -83,24 +76,26 @@ export default function UsersPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const loadUsers = useCallback(async () => {
-    setLoading(true);
-    const res = await fetch("/api/admin/users");
-    const data = await res.json();
-    setUsers(data.users || []);
-    setLoading(false);
-  }, []);
-
-  const loadRoles = useCallback(async () => {
-    const res = await fetch("/api/admin/roles");
-    const data = await res.json();
-    setRoles(data.roles || []);
+  // 首屏 loading 初值为 true，await 前不做同步 setState（react-hooks/set-state-in-effect）
+  // 首屏 loading 初值为 true，await 前不做同步 setState（react-hooks/set-state-in-effect）
+  const loadAll = useCallback(async () => {
+    try {
+      const [usersRes, rolesRes] = await Promise.all([
+        fetch("/api/admin/users"),
+        fetch("/api/admin/roles"),
+      ]);
+      const usersData = await usersRes.json();
+      const rolesData = await rolesRes.json();
+      setUsers(usersData.users || []);
+      setRoles(rolesData.roles || []);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    loadUsers();
-    loadRoles();
-  }, [loadUsers, loadRoles]);
+    loadAll();
+  }, [loadAll]);
 
   const openCreate = () => {
     setEditingUser(null);
@@ -158,7 +153,7 @@ export default function UsersPage() {
       }
 
       setDialogOpen(false);
-      loadUsers();
+      loadAll();
     } catch {
       setError("网络错误");
     } finally {
@@ -172,7 +167,7 @@ export default function UsersPage() {
     if (res.ok) {
       setDeleteId(null);
       setDeleteDialogOpen(false);
-      loadUsers();
+      loadAll();
     }
   };
 

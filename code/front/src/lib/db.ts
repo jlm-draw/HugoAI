@@ -2,6 +2,8 @@ import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
+  onSIGTERM?: () => void;
+  onSignal?: () => void;
 };
 
 export const prisma =
@@ -16,11 +18,11 @@ if (process.env.NODE_ENV !== "production") {
 
 // Handle graceful shutdown
 if (typeof global !== "undefined") {
-  (global as any).onSIGTERM = () => {
+  globalForPrisma.onSIGTERM = () => {
     console.log("Received SIGTERM. Closing Prisma client.");
     prisma.$disconnect();
   };
-  (global as any).onSignal = () => {
+  globalForPrisma.onSignal = () => {
     console.log("Received signal. Closing Prisma client.");
     prisma.$disconnect();
   };

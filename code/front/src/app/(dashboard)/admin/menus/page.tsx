@@ -44,14 +44,6 @@ interface MenuNode {
   children: MenuNode[];
 }
 
-interface FlatMenu {
-  id: string;
-  name: string;
-  path: string | null;
-  parentId: string | null;
-  sort: number;
-}
-
 const emptyForm = {
   name: "",
   path: "",
@@ -64,7 +56,6 @@ const emptyForm = {
 
 export default function MenusPage() {
   const [menus, setMenus] = useState<MenuNode[]>([]);
-  const [flatMenus, setFlatMenus] = useState<FlatMenu[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingMenu, setEditingMenu] = useState<MenuNode | null>(null);
@@ -75,13 +66,16 @@ export default function MenusPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
+  // 注意：首屏 loading 初值为 true，此处不在 await 前同步 setLoading，
+  // 以满足 react-hooks/set-state-in-effect 规则
   const loadMenus = useCallback(async () => {
-    setLoading(true);
-    const res = await fetch("/api/admin/menus");
-    const data = await res.json();
-    setMenus(data.menus || []);
-    setFlatMenus(data.flat || []);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/admin/menus");
+      const data = await res.json();
+      setMenus(data.menus || []);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

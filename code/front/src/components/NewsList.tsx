@@ -35,8 +35,8 @@ export function NewsList() {
   const [crawling, setCrawling] = useState(false);
   const [page, setPage] = useState(1);
 
+  // loading 初值为 true；await 前不做同步 setState（react-hooks/set-state-in-effect）
   async function fetchNews(p: number) {
-    setLoading(true);
     try {
       const res = await fetch(`/api/news?page=${p}&pageSize=20`);
       const json = await res.json();
@@ -119,7 +119,7 @@ export function NewsList() {
 
         {data?.articles.length === 0 && (
           <div className="text-center py-12 text-gray-400 text-sm">
-            暂无资讯，点击"立即刷新"开始抓取
+            暂无资讯，点击「立即刷新」开始抓取
           </div>
         )}
       </div>

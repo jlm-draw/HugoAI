@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
+import { Toaster } from "@/components/ui/toast";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -26,6 +27,7 @@ export default async function DashboardLayout({
         <Header />
         <main className="flex-1 p-6 overflow-auto">{children}</main>
       </div>
+      <Toaster />
     </div>
   );
 }

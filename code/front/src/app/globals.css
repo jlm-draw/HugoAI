@@ -128,3 +128,48 @@
     @apply font-sans;
   }
 }
+/* Tiptap 编辑器排版 */
+.tiptap-wrap .tiptap {
+  outline: none;
+  min-height: 100%;
+  font-size: 15px;
+  color: #1f2937;
+}
+.tiptap p {
+  margin: 0 0 0.75em;
+  line-height: 1.9;
+}
+.tiptap h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 1.2em 0 0.6em;
+}
+.tiptap h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1em 0 0.5em;
+}
+.tiptap ul,
+.tiptap ol {
+  padding-left: 1.5em;
+  margin: 0 0 0.75em;
+}
+.tiptap ul {
+  list-style: disc;
+}
+.tiptap ol {
+  list-style: decimal;
+}
+.tiptap blockquote {
+  border-left: 3px solid #e5e7eb;
+  padding-left: 1em;
+  color: #6b7280;
+  margin: 0 0 0.75em;
+}
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

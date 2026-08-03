@@ -17,7 +17,7 @@ export default function HomePage() {
       <div className="grid grid-cols-4 gap-4 mb-8">
         <QuickActionCard href="/news" icon={Newspaper} title="AI 资讯" emoji="📰" />
         <QuickActionCard href="/ppt" icon={FileText} title="生成 PPT" emoji="📊" comingSoon />
-        <QuickActionCard href="/novel" icon={BookOpen} title="写小说" emoji="✍️" comingSoon />
+        <QuickActionCard href="/novel" icon={BookOpen} title="写小说" emoji="✍️" />
         <QuickActionCard href="/video" icon={Video} title="生成视频" emoji="🎬" comingSoon />
       </div>
 

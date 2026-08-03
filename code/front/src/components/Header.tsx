@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { LogOut, UserCircle, Shield } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
