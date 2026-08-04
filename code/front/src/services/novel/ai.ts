@@ -1,4 +1,4 @@
-import { chat, chatStream } from "@/lib/ai";
+import { chat, chatStream, extractJson } from "@/lib/ai";
 import {
   SYSTEM_CONSISTENCY,
   SYSTEM_CONTINUE,
@@ -81,17 +81,6 @@ function buildSettingBlock(ctx: StoryContext): string {
     }
   }
   return lines.join("\n");
-}
-
-/** 从模型输出中提取 JSON（兼容 markdown 代码块与前后多余文字） */
-function extractJson(text: string): unknown {
-  const cleaned = text.replace(/```/g, "");
-  const starts = [cleaned.indexOf("{"), cleaned.indexOf("[")].filter((i) => i >= 0);
-  if (starts.length === 0) throw new Error("AI 输出格式异常，请重试");
-  const start = Math.min(...starts);
-  const end = cleaned[start] === "{" ? cleaned.lastIndexOf("}") : cleaned.lastIndexOf("]");
-  if (end <= start) throw new Error("AI 输出格式异常，请重试");
-  return JSON.parse(cleaned.slice(start, end + 1));
 }
 
 /** 新建小说：根据类型/主题生成世界观与人物建议 */
