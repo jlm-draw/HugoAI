@@ -120,6 +120,8 @@ model NewsArticle {
   publishedAt  DateTime?
   createdAt    DateTime @default(now())
 
+  videoScripts VideoScript[]
+
   @@index([source])
   @@index([publishedAt])
   @@index([createdAt])
@@ -229,13 +231,16 @@ model VideoScript {
   title     String
   titles    Json
   narration String   @default("")
+  newsId    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   project VideoProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
   shots   VideoShot[]
+  news    NewsArticle? @relation(fields: [newsId], references: [id], onDelete: SetNull)
 
   @@index([projectId])
+  @@index([newsId])
 }
 
 model VideoShot {
