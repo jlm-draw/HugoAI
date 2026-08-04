@@ -9,6 +9,13 @@ export interface GeneratedScript {
   shots: Array<{ visual: string; line: string; duration: number }>;
 }
 
+/** 注入生成流程的新闻素材 */
+export interface NewsMaterial {
+  newsTitle: string;
+  source: string;
+  content: string | null;
+}
+
 function str(v: unknown): string {
   return typeof v === "string" ? v : "";
 }
@@ -23,13 +30,23 @@ function clampDuration(v: unknown): number {
 export async function generateScript(
   track: TrackCode,
   topic: string,
-  positioning: string | null
+  positioning: string | null,
+  material?: NewsMaterial | null
 ): Promise<GeneratedScript> {
+  const parts = [`选题：${topic}`];
+  if (material) {
+    parts.push(`【新闻素材】\n标题：${material.newsTitle}\n来源：${material.source}`);
+    if (material.content) {
+      parts.push(`正文：${material.content}`);
+    }
+  }
+  parts.push("请策划完整的短视频脚本。");
+
   const result = await chat(
     [
       {
         role: "user",
-        content: `选题：${topic}\n请策划完整的短视频脚本。`,
+        content: parts.join("\n"),
       },
     ],
     {

@@ -42,6 +42,8 @@ export interface VideoScriptItem {
   narration: string;
   createdAt: string;
   shots: VideoShotItem[];
+  /** 来源新闻（无则为 null） */
+  news: { title: string; url: string; source: string } | null;
 }
 
 /** 项目卡片摘要 */

@@ -29,7 +29,7 @@ export async function getOwnedProject(projectId: string, userId: string) {
     include: {
       scripts: {
         orderBy: { createdAt: "desc" },
-        include: { shots: { orderBy: { sort: "asc" } } },
+        include: { shots: { orderBy: { sort: "asc" } }, news: true },
       },
     },
   });

@@ -1,7 +1,9 @@
 import type { Prisma } from "@prisma/client";
 import type { VideoScriptItem, VideoShotItem } from "./types";
 
-type ScriptWithShots = Prisma.VideoScriptGetPayload<{ include: { shots: true } }>;
+type ScriptWithShots = Prisma.VideoScriptGetPayload<{
+  include: { shots: true; news: true };
+}>;
 
 export function serializeShot(shot: {
   id: string;
@@ -29,5 +31,8 @@ export function serializeScript(script: ScriptWithShots): VideoScriptItem {
     narration: script.narration,
     createdAt: script.createdAt.toISOString(),
     shots: [...script.shots].sort((a, b) => a.sort - b.sort).map(serializeShot),
+    news: script.news
+      ? { title: script.news.title, url: script.news.url, source: script.news.source }
+      : null,
   };
 }
