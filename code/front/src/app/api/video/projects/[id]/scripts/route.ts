@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { generateScript } from "@/services/video/ai";
+import { generateScript, type NewsMaterial } from "@/services/video/ai";
 import { getOwnedProject, requireVideoAccess } from "@/services/video/guard";
+import { fetchArticleMaterial } from "@/services/video/news-material";
 import { serializeScript } from "@/services/video/serialize";
 import { TRACKS, type TrackCode } from "@/services/video/types";
 
@@ -16,7 +17,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "项目不存在" }, { status: 404 });
   }
 
-  let body: { track?: unknown; topic?: unknown };
+  let body: { track?: unknown; topic?: unknown; newsId?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -35,14 +36,31 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "选题不能超过 200 字" }, { status: 400 });
   }
 
+  const newsId = typeof body.newsId === "string" ? body.newsId : null;
+  let material: NewsMaterial | null = null;
+  if (newsId) {
+    const article = await prisma.newsArticle.findFirst({ where: { id: newsId } });
+    if (!article) {
+      return NextResponse.json({ error: "新闻不存在" }, { status: 400 });
+    }
+    const content = await fetchArticleMaterial(article.url);
+    material = { newsTitle: article.title, source: article.source, content };
+  }
+
   try {
-    const generated = await generateScript(track as TrackCode, topic, project.positioning);
+    const generated = await generateScript(
+      track as TrackCode,
+      topic,
+      project.positioning,
+      material
+    );
 
     const script = await prisma.videoScript.create({
       data: {
         projectId: id,
         track,
         topic,
+        newsId,
         title: generated.titles[0],
         titles: generated.titles,
         narration: generated.narration,
@@ -55,7 +73,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           })),
         },
       },
-      include: { shots: { orderBy: { sort: "asc" } } },
+      include: { shots: { orderBy: { sort: "asc" } }, news: true },
     });
 
     return NextResponse.json({ script: serializeScript(script) }, { status: 201 });
