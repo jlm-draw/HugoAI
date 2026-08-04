@@ -9,10 +9,10 @@
     "lint": "eslint",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx ../backend/prisma/seed.ts"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts",
+    "seed": "tsx ../backend/prisma/seed.ts",
     "schema": "../backend/prisma/schema.prisma"
   },
   "dependencies": {
