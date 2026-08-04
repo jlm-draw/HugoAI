@@ -41,6 +41,17 @@ export function ScriptDetail({ script }: { script: VideoScriptItem }) {
           <p className="mt-1 truncate text-xs text-gray-400">
             选题：{script.topic} · {formatDate(script.createdAt)}
           </p>
+          {script.news && (
+            <a
+              href={script.news.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-0.5 block truncate text-xs text-blue-600 hover:underline"
+              title={script.news.title}
+            >
+              来源：{script.news.source} · {script.news.title} ↗
+            </a>
+          )}
         </div>
         <Button
           variant="outline"

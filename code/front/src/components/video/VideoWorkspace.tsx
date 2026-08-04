@@ -50,6 +50,10 @@ export function VideoWorkspace({ projectId }: Props) {
   const [track, setTrack] = useState<string>("");
   const [generating, setGenerating] = useState(false);
   const [deleting, setDeleting] = useState<{ id: string; topic: string } | null>(null);
+  const [newsList, setNewsList] = useState<
+    Array<{ id: string; title: string; source: string; createdAt: string }>
+  >([]);
+  const [newsId, setNewsId] = useState<string | null>(null);
 
   /** 静默刷新（不动 loading，避免生成后整页闪骨架屏） */
   const refresh = useCallback(async () => {
@@ -84,6 +88,31 @@ export function VideoWorkspace({ projectId }: Props) {
     };
   }, [projectId]);
 
+  // 赛道为 AI 资讯解读时，拉取最近资讯供选择（只拉一次）
+  useEffect(() => {
+    if (track !== "ai-news" || newsList.length > 0) return;
+    let ignore = false;
+    async function loadNews() {
+      try {
+        const res = await fetch("/api/news?page=1&pageSize=50");
+        const json = await res.json();
+        if (!ignore && res.ok) setNewsList(json.articles ?? []);
+      } catch {
+        // 加载失败保持空列表
+      }
+    }
+    loadNews();
+    return () => {
+      ignore = true;
+    };
+  }, [track, newsList.length]);
+
+  function handleSelectNews(id: string | null) {
+    setNewsId(id ?? null);
+    const article = newsList.find((n) => n.id === id);
+    if (article) setTopic(article.title);
+  }
+
   async function handleGenerate() {
     if (!track) {
       toast.add({ type: "error", title: "请先选择内容赛道" });
@@ -98,13 +127,14 @@ export function VideoWorkspace({ projectId }: Props) {
       const res = await fetch(`/api/video/projects/${projectId}/scripts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ track, topic: topic.trim() }),
+        body: JSON.stringify({ track, topic: topic.trim(), newsId: newsId || undefined }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "生成失败");
       await refresh();
       setSelectedId(json.script?.id ?? null);
       setTopic("");
+      setNewsId(null);
       toast.add({ type: "success", title: "脚本已生成" });
     } catch (err) {
       toast.add({
@@ -187,7 +217,13 @@ export function VideoWorkspace({ projectId }: Props) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="w-full space-y-1.5 sm:w-44">
             <Label>内容赛道</Label>
-            <Select value={track} onValueChange={(v: string | null) => setTrack(v ?? "")}>
+            <Select
+              value={track}
+              onValueChange={(v: string | null) => {
+                setTrack(v ?? "");
+                setNewsId(null);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="选择赛道" />
               </SelectTrigger>
@@ -200,6 +236,33 @@ export function VideoWorkspace({ projectId }: Props) {
               </SelectContent>
             </Select>
           </div>
+          {track === "ai-news" && (
+            <div className="w-full space-y-1.5 sm:w-72">
+              <Label>选择新闻（自动带标题和原文素材）</Label>
+              {newsList.length === 0 ? (
+                <p className="rounded-md border border-dashed px-3 py-2 text-xs text-gray-400">
+                  暂无资讯，请先去{" "}
+                  <Link href="/news" className="text-blue-600 hover:underline">
+                    AI 资讯
+                  </Link>{" "}
+                  页抓取
+                </p>
+              ) : (
+                <Select value={newsId ?? ""} onValueChange={handleSelectNews}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="从最近资讯中选择一条" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {newsList.map((n) => (
+                      <SelectItem key={n.id} value={n.id}>
+                        {n.title}（{n.source} · {formatDate(n.createdAt)}）
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
           <div className="flex-1 space-y-1.5">
             <Label>视频选题</Label>
             <Textarea
