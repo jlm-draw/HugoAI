@@ -31,11 +31,12 @@ interface Props {
 }
 
 export function MaterialPicker({ projectId, scriptId, shot, open, onClose, onSaved }: Props) {
-  const [query, setQuery] = useState("");
+  // 组件每次打开都是全新挂载（ScriptDetail 以 pickerShot 条件渲染），初始值直接取自 shot
+  const [query, setQuery] = useState(() => shot.materialQuery ?? "");
   const [orientation, setOrientation] = useState<string>("portrait");
   const [videos, setVideos] = useState<MaterialVideo[]>([]);
   const [nextPage, setNextPage] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() => Boolean(shot.materialQuery?.trim()));
   const [loadingMore, setLoadingMore] = useState(false);
   const [preview, setPreview] = useState<MaterialVideo | null>(null);
   const [saving, setSaving] = useState(false);
@@ -69,19 +70,37 @@ export function MaterialPicker({ projectId, scriptId, shot, open, onClose, onSav
     }
   }, []);
 
-  // 打开时重置状态；有 AI 预生成关键词则自动搜一次
+  // 挂载时有 AI 预生成关键词则自动搜一次
   useEffect(() => {
-    if (!open) return;
-    setQuery(shot.materialQuery ?? "");
-    setOrientation("portrait");
-    setVideos([]);
-    setPreview(null);
-    setNextPage(null);
-    setSearched(false);
-    if (shot.materialQuery?.trim()) {
-      void doSearch(1, false, shot.materialQuery, "portrait");
+    const q = shot.materialQuery?.trim();
+    if (!q) return;
+    let ignore = false;
+    async function autoSearch(kw: string) {
+      try {
+        const res = await fetch(
+          `/api/video/materials/search?query=${encodeURIComponent(kw)}&orientation=portrait&page=1`
+        );
+        const json = await res.json();
+        if (ignore) return;
+        if (!res.ok) throw new Error(json.error ?? "搜索失败");
+        setVideos(json.videos ?? []);
+        setNextPage(json.nextPage ?? null);
+        setSearched(true);
+      } catch (err) {
+        if (!ignore) {
+          toast.add({ type: "error", title: err instanceof Error ? err.message : "搜索失败" });
+        }
+      } finally {
+        if (!ignore) setLoading(false);
+      }
     }
-  }, [open, shot.id, shot.materialQuery, doSearch]);
+    autoSearch(q);
+    return () => {
+      ignore = true;
+    };
+    // 仅挂载时执行一次（组件每次打开都重新挂载）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function confirmPick(video: MaterialVideo) {
     const file = video.files[0];
