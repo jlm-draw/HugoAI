@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { trackEmoji, trackName, type VideoScriptItem } from "@/services/video/types";
+import { NarrationPanel } from "./NarrationPanel";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -13,7 +14,16 @@ function formatDate(iso: string): string {
   ).padStart(2, "0")}`;
 }
 
-export function ScriptDetail({ script }: { script: VideoScriptItem }) {
+export function ScriptDetail({
+  script,
+  projectId,
+  onChanged,
+}: {
+  script: VideoScriptItem;
+  projectId: string;
+  /** 配音生成成功后刷新工作台数据 */
+  onChanged: () => Promise<void>;
+}) {
   async function copy(text: string, label: string) {
     try {
       await navigator.clipboard.writeText(text);
@@ -126,6 +136,9 @@ export function ScriptDetail({ script }: { script: VideoScriptItem }) {
           </div>
         )}
       </div>
+
+      {/* 配音与字幕 */}
+      <NarrationPanel projectId={projectId} script={script} onGenerated={onChanged} />
     </div>
   );
 }

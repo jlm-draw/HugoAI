@@ -331,7 +331,12 @@ export function VideoWorkspace({ projectId }: Props) {
           </div>
           <div>
             {selected ? (
-              <ScriptDetail script={selected} />
+              <ScriptDetail
+                key={selected.id}
+                script={selected}
+                projectId={projectId}
+                onChanged={refresh}
+              />
             ) : (
               <div className="flex items-center justify-center rounded-xl border border-dashed py-16 text-sm text-gray-400">
                 在左侧选择一个脚本查看详情
