@@ -253,6 +253,9 @@ model VideoShot {
   visual    String
   line      String
   duration  Int      @default(3)
+  materialQuery String?
+  materialUrl   String?
+  materialThumb String?
   createdAt DateTime @default(now())
 
   script VideoScript @relation(fields: [scriptId], references: [id], onDelete: Cascade)
