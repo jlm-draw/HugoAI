@@ -151,7 +151,12 @@ export function NarrationPanel({ projectId, script, onGenerated }: Props) {
               onValueChange={(v: string | null) => setVoice(v ?? DEFAULT_VOICE)}
             >
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="选择音色" />
+                <SelectValue placeholder="选择音色">
+                  {(v: string | null) => {
+                    const item = VOICES.find((x) => x.id === v);
+                    return item ? `${item.name}（${item.gender} · ${item.style}）` : "选择音色";
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {VOICES.map((v) => (

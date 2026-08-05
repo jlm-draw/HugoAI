@@ -225,7 +225,12 @@ export function VideoWorkspace({ projectId }: Props) {
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="选择赛道" />
+                <SelectValue placeholder="选择赛道">
+                  {(v: string | null) => {
+                    const t = TRACKS.find((x) => x.code === v);
+                    return t ? `${t.emoji} ${t.name}` : "选择赛道";
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {TRACKS.map((t) => (
@@ -250,7 +255,14 @@ export function VideoWorkspace({ projectId }: Props) {
               ) : (
                 <Select value={newsId ?? ""} onValueChange={handleSelectNews}>
                   <SelectTrigger>
-                    <SelectValue placeholder="从最近资讯中选择一条" />
+                    <SelectValue placeholder="从最近资讯中选择一条">
+                      {(v: string | null) => {
+                        const n = newsList.find((x) => x.id === v);
+                        return n
+                          ? `${n.title}（${n.source} · ${formatDate(n.createdAt)}）`
+                          : "从最近资讯中选择一条";
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {newsList.map((n) => (
