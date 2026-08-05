@@ -28,6 +28,7 @@
     "ioredis": "^5.11.1",
     "jose": "^6.2.4",
     "lucide-react": "^1.27.0",
+    "msedge-tts": "^2.0.7",
     "next": "16.2.12",
     "node-cron": "^4.6.0",
     "openai": "^7.0.0",
