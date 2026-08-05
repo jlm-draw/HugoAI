@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { deleteAudio } from "@/services/video/audio-store";
 import { getOwnedProject, requireVideoAccess } from "@/services/video/guard";
 import { serializeScript } from "@/services/video/serialize";
 import type { VideoWorkspaceData } from "@/services/video/types";
@@ -94,6 +95,13 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "项目不存在" }, { status: 404 });
   }
 
+  // 先取脚本 id 列表，删项目后顺带清理配音文件（best-effort）
+  const scripts = await prisma.videoScript.findMany({
+    where: { projectId: id },
+    select: { id: true },
+  });
+
   await prisma.videoProject.delete({ where: { id } });
+  await Promise.all(scripts.map((s) => deleteAudio(s.id)));
   return NextResponse.json({ success: true });
 }

@@ -1,10 +1,11 @@
+import { readFile } from "fs/promises";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { deleteAudio } from "@/services/video/audio-store";
 import { requireVideoAccess } from "@/services/video/guard";
+import { audioFilePath } from "@/services/video/audio-store";
 
-/** DELETE /api/video/projects/[id]/scripts/[scriptId] — 删除单个脚本（级联删除分镜） */
-export async function DELETE(
+/** GET /api/video/projects/[id]/scripts/[scriptId]/audio — 下发配音 mp3（带鉴权） */
+export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string; scriptId: string }> }
 ) {
@@ -20,7 +21,16 @@ export async function DELETE(
     return NextResponse.json({ error: "脚本不存在" }, { status: 404 });
   }
 
-  await prisma.videoScript.delete({ where: { id: scriptId } });
-  await deleteAudio(scriptId);
-  return NextResponse.json({ success: true });
+  try {
+    const data = await readFile(audioFilePath(scriptId));
+    return new Response(data, {
+      headers: {
+        "Content-Type": "audio/mpeg",
+        "Content-Disposition": `inline; filename="${scriptId}.mp3"`,
+        "Cache-Control": "private, max-age=0",
+      },
+    });
+  } catch {
+    return NextResponse.json({ error: "音频文件不存在，请重新生成配音" }, { status: 404 });
+  }
 }
