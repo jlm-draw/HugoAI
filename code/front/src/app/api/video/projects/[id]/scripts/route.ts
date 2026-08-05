@@ -70,6 +70,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
             visual: s.visual,
             line: s.line,
             duration: s.duration,
+            materialQuery: s.materialQuery,
           })),
         },
       },

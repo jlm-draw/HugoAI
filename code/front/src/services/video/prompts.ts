@@ -14,13 +14,14 @@ export function systemScriptGenerate(track: string, positioning: string | null):
   "titles": ["爆款标题1", "爆款标题2", "爆款标题3", "爆款标题4", "爆款标题5"],
   "narration": "完整口播稿，200-260字（约60秒语速），口语化，开头5秒必须有强钩子，结尾有关注/点赞引导",
   "shots": [
-    { "visual": "画面描述：这个镜头应出现什么画面/素材，要具体到可以直接搜索或生成", "line": "该镜头对应的口播台词", "duration": 5 }
+    { "visual": "画面描述：这个镜头应出现什么画面/素材，要具体到可以直接搜索或生成", "line": "该镜头对应的口播台词", "duration": 5, "materialQuery": "2-4个英文搜索关键词" }
   ]
 }
 要求：
 - titles 恰好 5 条，每条不超过 20 字，运用悬念、数字、对比、反常识等钩子技巧
 - shots 按口播的自然停顿拆成 6-12 个镜头，所有 shot 的 line 按顺序拼接必须与 narration 完全一致，不增不减
 - 每个 shot 的 duration 为 3-8 秒的整数，总和接近口播时长
+- 每个 shot 的 materialQuery 为 2-4 个英文关键词，能直接用于免版权素材库（如 Pexels）搜到该画面，简洁具体（如 city night timelapse），不要长句
 - 口播稿节奏：钩子开场 → 主体内容（信息密度高）→ 结尾互动引导
 - 若提供了新闻素材，口播稿须基于素材解读和展开，不得编造素材中不存在的事实、数据与引语`;
 }

@@ -6,7 +6,7 @@ import { trackName, type TrackCode } from "./types";
 export interface GeneratedScript {
   titles: string[];
   narration: string;
-  shots: Array<{ visual: string; line: string; duration: number }>;
+  shots: Array<{ visual: string; line: string; duration: number; materialQuery: string | null }>;
 }
 
 /** 注入生成流程的新闻素材 */
@@ -72,11 +72,16 @@ export async function generateScript(
   const narration = str(parsed?.narration).trim();
 
   const shots = Array.isArray(parsed?.shots)
-    ? parsed.shots.slice(0, 30).map((s: { visual?: unknown; line?: unknown; duration?: unknown }) => ({
-        visual: str(s?.visual).trim(),
-        line: str(s?.line).trim(),
-        duration: clampDuration(s?.duration),
-      }))
+    ? parsed.shots
+        .slice(0, 30)
+        .map(
+          (s: { visual?: unknown; line?: unknown; duration?: unknown; materialQuery?: unknown }) => ({
+            visual: str(s?.visual).trim(),
+            line: str(s?.line).trim(),
+            duration: clampDuration(s?.duration),
+            materialQuery: str(s?.materialQuery).trim().slice(0, 80) || null,
+          })
+        )
     : [];
 
   if (titles.length === 0 || !narration) {
