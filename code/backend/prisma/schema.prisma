@@ -232,6 +232,9 @@ model VideoScript {
   titles    Json
   narration String   @default("")
   newsId    String?
+  voice     String?
+  audioUrl  String?
+  srt       String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
