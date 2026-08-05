@@ -34,5 +34,8 @@ export function serializeScript(script: ScriptWithShots): VideoScriptItem {
     news: script.news
       ? { title: script.news.title, url: script.news.url, source: script.news.source }
       : null,
+    voice: script.voice,
+    audioUrl: script.audioUrl,
+    srt: script.srt,
   };
 }

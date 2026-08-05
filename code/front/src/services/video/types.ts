@@ -20,6 +20,17 @@ export function trackEmoji(code: string): string {
   return TRACKS.find((t) => t.code === code)?.emoji ?? "🎬";
 }
 
+/** 可选配音音色（Microsoft Edge TTS 中文音色） */
+export const VOICES = [
+  { id: "zh-CN-XiaoxiaoNeural", name: "晓晓", gender: "女", style: "温暖亲切" },
+  { id: "zh-CN-XiaoyiNeural", name: "晓伊", gender: "女", style: "活泼明快" },
+  { id: "zh-CN-YunxiNeural", name: "云希", gender: "男", style: "年轻阳光" },
+  { id: "zh-CN-YunjianNeural", name: "云健", gender: "男", style: "沉稳解说" },
+  { id: "zh-CN-YunyangNeural", name: "云扬", gender: "男", style: "新闻专业" },
+] as const;
+
+export const DEFAULT_VOICE = "zh-CN-YunxiNeural";
+
 /** 单个分镜 */
 export interface VideoShotItem {
   id: string;
@@ -44,6 +55,12 @@ export interface VideoScriptItem {
   shots: VideoShotItem[];
   /** 来源新闻（无则为 null） */
   news: { title: string; url: string; source: string } | null;
+  /** 配音音色 id（未配音为 null） */
+  voice: string | null;
+  /** 音频访问路径（未配音为 null） */
+  audioUrl: string | null;
+  /** SRT 字幕文本（未配音为 null） */
+  srt: string | null;
 }
 
 /** 项目卡片摘要 */
