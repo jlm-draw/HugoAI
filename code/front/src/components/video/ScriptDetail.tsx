@@ -1,10 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
-import { trackEmoji, trackName, type VideoScriptItem } from "@/services/video/types";
+import {
+  trackEmoji,
+  trackName,
+  type VideoScriptItem,
+  type VideoShotItem,
+} from "@/services/video/types";
+import { MaterialPicker } from "./MaterialPicker";
 import { NarrationPanel } from "./NarrationPanel";
 
 function formatDate(iso: string): string {
@@ -30,6 +37,27 @@ export function ScriptDetail({
       toast.add({ type: "success", title: `${label}已复制到剪贴板` });
     } catch {
       toast.add({ type: "error", title: "复制失败，请手动选择复制" });
+    }
+  }
+
+  const [pickerShot, setPickerShot] = useState<VideoShotItem | null>(null);
+
+  async function removeMaterial(shotId: string) {
+    try {
+      const res = await fetch(
+        `/api/video/projects/${projectId}/scripts/${script.id}/shots/${shotId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ materialUrl: null }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "移除失败");
+      await onChanged();
+      toast.add({ type: "success", title: "素材已移除" });
+    } catch (err) {
+      toast.add({ type: "error", title: err instanceof Error ? err.message : "移除失败" });
     }
   }
 
@@ -120,6 +148,7 @@ export function ScriptDetail({
                   <th className="px-2 py-1.5 text-left font-medium">画面</th>
                   <th className="px-2 py-1.5 text-left font-medium">台词</th>
                   <th className="w-14 px-2 py-1.5 text-right font-medium">秒</th>
+                  <th className="w-16 px-2 py-1.5 text-left font-medium">素材</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -129,6 +158,38 @@ export function ScriptDetail({
                     <td className="px-2 py-1.5 text-gray-600">{s.visual}</td>
                     <td className="px-2 py-1.5 text-gray-700">{s.line}</td>
                     <td className="px-2 py-1.5 text-right text-gray-500">{s.duration}</td>
+                    <td className="px-2 py-1.5">
+                      {s.materialUrl ? (
+                        <div className="group/mat relative h-16 w-9">
+                          <img
+                            src={s.materialThumb ?? ""}
+                            alt=""
+                            className="h-16 w-9 rounded object-cover"
+                          />
+                          <div className="absolute inset-0 hidden flex-col items-center justify-center gap-0.5 rounded bg-black/50 group-hover/mat:flex">
+                            <button
+                              onClick={() => setPickerShot(s)}
+                              className="text-[10px] text-white hover:underline"
+                            >
+                              换
+                            </button>
+                            <button
+                              onClick={() => removeMaterial(s.id)}
+                              className="text-[10px] text-white hover:underline"
+                            >
+                              移除
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setPickerShot(s)}
+                          className="rounded border border-dashed px-1.5 py-1 text-[11px] text-gray-400 hover:border-blue-300 hover:text-blue-500"
+                        >
+                          选素材
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -139,6 +200,17 @@ export function ScriptDetail({
 
       {/* 配音与字幕 */}
       <NarrationPanel projectId={projectId} script={script} onGenerated={onChanged} />
+
+      {pickerShot && (
+        <MaterialPicker
+          projectId={projectId}
+          scriptId={script.id}
+          shot={pickerShot}
+          open
+          onClose={() => setPickerShot(null)}
+          onSaved={onChanged}
+        />
+      )}
     </div>
   );
 }
