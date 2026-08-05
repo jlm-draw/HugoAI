@@ -28,19 +28,32 @@ interface RawFile {
   file_type?: string;
 }
 
-/** 每个视频最多保留 2 个文件：优先 hd 次选 sd（uhd 过大，不传给前端） */
+const shortSide = (f: RawFile) => Math.min(f.width ?? 0, f.height ?? 0);
+
+/** 清晰度档位：新视频可能没有 quality 字段，按短边分辨率推断（≥1440 uhd / ≥720 hd / 其余 sd） */
+function tier(f: RawFile): "uhd" | "hd" | "sd" {
+  if (f.quality === "uhd" || f.quality === "hd" || f.quality === "sd") return f.quality;
+  const s = shortSide(f);
+  if (s >= 1440) return "uhd";
+  if (s >= 720) return "hd";
+  return "sd";
+}
+
+/** 每个视频最多保留 2 个文件：优先 hd（≤1080p）次选 sd（uhd 过大，不传给前端） */
 function pickFiles(raw: RawFile[]): PexelsVideo["files"] {
   const vids = raw.filter((f) => (f.file_type ?? "video/mp4") === "video/mp4" && f.link);
-  const hd = vids.find((f) => f.quality === "hd");
-  const sd = vids.find((f) => f.quality === "sd");
-  return [hd, sd]
-    .filter((f): f is RawFile => Boolean(f))
-    .map((f) => ({
-      quality: f.quality ?? "sd",
-      width: f.width ?? 0,
-      height: f.height ?? 0,
-      link: f.link as string,
-    }));
+  if (vids.length === 0) return [];
+  const hd = vids.filter((f) => tier(f) === "hd").sort((a, b) => shortSide(b) - shortSide(a));
+  const sd = vids.filter((f) => tier(f) === "sd").sort((a, b) => shortSide(b) - shortSide(a));
+  const primary = hd.find((f) => shortSide(f) <= 1080) ?? hd[0] ?? sd[0];
+  if (!primary) return [];
+  const fallback = sd.find((f) => f !== primary);
+  return [primary, ...(fallback ? [fallback] : [])].map((f) => ({
+    quality: tier(f) === "hd" ? "hd" : "sd",
+    width: f.width ?? 0,
+    height: f.height ?? 0,
+    link: f.link as string,
+  }));
 }
 
 export async function searchPexelsVideos(opts: {
@@ -90,6 +103,12 @@ export async function searchPexelsVideos(opts: {
       files: pickFiles(v.video_files ?? []),
     }));
 
-  const next = Number(data.next_page);
-  return { videos, nextPage: Number.isFinite(next) && next > opts.page ? next : null };
+  // next_page 是 URL（形如 ...&page=2&...），从中解析页码；解析失败时按当前页+1 兜底
+  let nextPage: number | null = null;
+  if (data.next_page) {
+    const m = /[?&]page=(\d+)/.exec(String(data.next_page));
+    const next = m ? Number(m[1]) : opts.page + 1;
+    nextPage = Number.isFinite(next) && next > opts.page ? next : null;
+  }
+  return { videos, nextPage };
 }
