@@ -11,6 +11,9 @@ export function serializeShot(shot: {
   visual: string;
   line: string;
   duration: number;
+  materialQuery: string | null;
+  materialUrl: string | null;
+  materialThumb: string | null;
 }): VideoShotItem {
   return {
     id: shot.id,
@@ -18,6 +21,9 @@ export function serializeShot(shot: {
     visual: shot.visual,
     line: shot.line,
     duration: shot.duration,
+    materialQuery: shot.materialQuery,
+    materialUrl: shot.materialUrl,
+    materialThumb: shot.materialThumb,
   };
 }
 

@@ -38,6 +38,12 @@ export interface VideoShotItem {
   visual: string;
   line: string;
   duration: number;
+  /** AI 预生成的英文素材搜索词（旧脚本为 null） */
+  materialQuery: string | null;
+  /** 选定素材的视频直链（未选为 null） */
+  materialUrl: string | null;
+  /** 素材缩略图链接（未选为 null） */
+  materialThumb: string | null;
 }
 
 /** 脚本（含分镜；列表与详情共用） */
