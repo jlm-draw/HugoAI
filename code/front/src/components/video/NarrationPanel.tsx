@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Download, Loader2, Mic, RefreshCw } from "lucide-react";
+import { Download, Film, Loader2, Mic, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -32,6 +32,7 @@ export function NarrationPanel({ projectId, script, onGenerated }: Props) {
   const [voice, setVoice] = useState<string>(script.voice ?? DEFAULT_VOICE);
   const [generating, setGenerating] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [exporting, setExporting] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const cues = useMemo(() => (script.srt ? parseSrt(script.srt) : []), [script.srt]);
@@ -99,6 +100,29 @@ export function NarrationPanel({ projectId, script, onGenerated }: Props) {
     URL.revokeObjectURL(url);
   }
 
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await fetch(`/api/video/projects/${projectId}/scripts/${script.id}/export`);
+      if (!res.ok) {
+        const json = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(json?.error ?? "导出失败");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${script.title}-剪映草稿.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.add({ type: "success", title: "已导出，按压缩包内 README 导入剪映" });
+    } catch (err) {
+      toast.add({ type: "error", title: err instanceof Error ? err.message : "导出失败" });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function seekTo(cue: SrtCue) {
     const audio = audioRef.current;
     if (!audio) return;
@@ -162,6 +186,15 @@ export function NarrationPanel({ projectId, script, onGenerated }: Props) {
               </button>
             </div>
           )}
+          <button
+            onClick={handleExport}
+            disabled={!hasAudio || exporting}
+            title={hasAudio ? "导出为剪映草稿（素材 + 配音 + 字幕）" : "请先合成配音"}
+            className="inline-flex h-8 items-center gap-1 rounded-lg border bg-white px-2.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {exporting ? <Loader2 size={13} className="animate-spin" /> : <Film size={13} />}
+            {exporting ? "导出中…" : "导出剪映草稿"}
+          </button>
         </div>
 
         {generating && (
