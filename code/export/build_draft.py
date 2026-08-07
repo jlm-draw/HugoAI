@@ -18,10 +18,59 @@
 """
 import json
 import os
+import re
 import sys
 import zipfile
 
 import pyJianYingDraft as jy
+
+SRT_TIME_RE = re.compile(
+    r"(\d{2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[,.](\d{3})"
+)
+
+
+def _srt_to_ms(h: str, m: str, s: str, ms: str) -> int:
+    return int(h) * 3600000 + int(m) * 60000 + int(s) * 1000 + int(ms)
+
+
+def _ms_to_srt(ms: int) -> str:
+    h, rem = divmod(ms, 3600000)
+    m, rem = divmod(rem, 60000)
+    s, ms3 = divmod(rem, 1000)
+    return f"{h:02d}:{m:02d}:{s:02d},{ms3:03d}"
+
+
+def normalize_srt_overlaps(path: str) -> None:
+    """钳制相邻字幕句的重叠（就地重写）。
+
+    Edge-TTS 输出的相邻句可能有几十毫秒重叠，而草稿库拒绝重叠的段落，
+    故把前一句的结束时间裁到下一句的开始时间；时长非正的句丢弃。
+    """
+    with open(path, encoding="utf-8") as f:
+        content = f.read()
+    cues = []  # [start, end, text]
+    for block in re.split(r"\n\s*\n", content.strip()):
+        lines = block.strip().splitlines()
+        if len(lines) < 3:
+            continue
+        m = SRT_TIME_RE.match(lines[1])
+        if not m:
+            continue
+        g = m.groups()
+        cues.append([_srt_to_ms(*g[:4]), _srt_to_ms(*g[4:]), "\n".join(lines[2:])])
+    cues.sort(key=lambda c: c[0])
+    for i in range(len(cues) - 1):
+        if cues[i][1] > cues[i + 1][0]:
+            cues[i][1] = cues[i + 1][0]
+    out = []
+    idx = 1
+    for start, end, text in cues:
+        if end <= start:
+            continue
+        out.append(f"{idx}\n{_ms_to_srt(start)} --> {_ms_to_srt(end)}\n{text}")
+        idx += 1
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n\n".join(out) + "\n")
 
 README_TEMPLATE = """【剪映草稿导入说明】
 1. 解压本压缩包，得到草稿文件夹「{draft_name}」
@@ -92,7 +141,9 @@ def main() -> int:
         )
 
         # 文本轨：SRT 字幕（库默认样式即模仿剪映自带字幕导入）
-        script.import_srt(os.path.join(root, manifest["subtitle"]), "subtitle")
+        srt_path = os.path.join(root, manifest["subtitle"])
+        normalize_srt_overlaps(srt_path)  # Edge-TTS 相邻句可能微重叠，先钳制
+        script.import_srt(srt_path, "subtitle")
 
         script.save()
     except Exception as e:
