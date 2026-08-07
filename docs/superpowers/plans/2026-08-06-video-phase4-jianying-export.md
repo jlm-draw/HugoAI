@@ -593,8 +593,8 @@ import { execFile } from "child_process";
 import { existsSync } from "fs";
 import path from "path";
 
-/** code/export 目录（cwd=code/front，上一级即仓库根） */
-const EXPORT_PROG_DIR = path.join(process.cwd(), "..", "code", "export");
+/** code/export 目录（cwd=code/front，上两级到仓库根，对齐 audio-store/materials 的写法） */
+const EXPORT_PROG_DIR = path.join(process.cwd(), "..", "..", "code", "export");
 const PYTHON_BIN = path.join(EXPORT_PROG_DIR, ".venv", "bin", "python");
 const BUILD_SCRIPT = path.join(EXPORT_PROG_DIR, "build_draft.py");
 
