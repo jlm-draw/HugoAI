@@ -28,6 +28,9 @@ code/backend/.env
 code/backend/.env.*
 !code/backend/.env.example
 
+# === Python export env ===
+code/export/.venv/
+
 # === Misc ===
 .DS_Store
 *.pem
