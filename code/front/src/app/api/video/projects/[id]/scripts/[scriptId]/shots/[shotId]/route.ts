@@ -70,5 +70,7 @@ export async function PATCH(
   }
 
   const updated = await prisma.videoShot.update({ where: { id: shotId }, data });
+  // 素材变更影响导出缓存：显式 touch script.updatedAt（缓存统一失效信号）
+  await prisma.videoScript.update({ where: { id: scriptId }, data: { updatedAt: new Date() } });
   return NextResponse.json({ shot: serializeShot(updated) });
 }
