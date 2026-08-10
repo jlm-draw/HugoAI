@@ -29,7 +29,10 @@ interface Props {
 }
 
 export function NarrationPanel({ projectId, script, onGenerated }: Props) {
-  const [voice, setVoice] = useState<string>(script.voice ?? DEFAULT_VOICE);
+  // 旧脚本可能存着已弃用的 Edge-TTS 音色 id，不在列表里时回退默认音色
+  const [voice, setVoice] = useState<string>(() =>
+    script.voice && VOICES.some((v) => v.id === script.voice) ? script.voice : DEFAULT_VOICE
+  );
   const [generating, setGenerating] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [exporting, setExporting] = useState(false);

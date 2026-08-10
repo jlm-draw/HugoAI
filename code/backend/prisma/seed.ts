@@ -40,7 +40,7 @@ async function main() {
     { module: "system", name: "管理菜单", code: "system:menu:manage", description: "创建/编辑/删除菜单" },
 
     // 业务模块
-    { module: "business", name: "查看新闻", code: "news:view", description: "查看AI资讯" },
+    { module: "business", name: "查看新闻", code: "news:view", description: "查看资讯库" },
     { module: "business", name: "爬取新闻", code: "news:crawl", description: "手动触发新闻爬取" },
     { module: "business", name: "PPT生成", code: "ppt:use", description: "使用PPT生成功能" },
     { module: "business", name: "小说写作", code: "novel:use", description: "使用小说写作功能" },
@@ -133,7 +133,7 @@ async function main() {
     { name: "PPT 生成", path: "/ppt", icon: "FileText", sort: 2 },
     { name: "小说写作", path: "/novel", icon: "BookOpen", sort: 3 },
     { name: "视频生成", path: "/video", icon: "Video", sort: 4 },
-    { name: "AI 资讯", path: "/news", icon: "Newspaper", sort: 5 },
+    { name: "资讯库", path: "/news", icon: "Newspaper", sort: 5 },
   ];
 
   const menuRecords = [];

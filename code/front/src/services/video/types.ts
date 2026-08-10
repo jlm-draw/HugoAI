@@ -20,16 +20,17 @@ export function trackEmoji(code: string): string {
   return TRACKS.find((t) => t.code === code)?.emoji ?? "🎬";
 }
 
-/** 可选配音音色（Microsoft Edge TTS 中文音色） */
+/** 可选配音音色（阿里百炼 CosyVoice 中文音色；edge 兜底引擎已弃用这些 id） */
 export const VOICES = [
-  { id: "zh-CN-XiaoxiaoNeural", name: "晓晓", gender: "女", style: "温暖亲切" },
-  { id: "zh-CN-XiaoyiNeural", name: "晓伊", gender: "女", style: "活泼明快" },
-  { id: "zh-CN-YunxiNeural", name: "云希", gender: "男", style: "年轻阳光" },
-  { id: "zh-CN-YunjianNeural", name: "云健", gender: "男", style: "沉稳解说" },
-  { id: "zh-CN-YunyangNeural", name: "云扬", gender: "男", style: "新闻专业" },
+  { id: "longxiaochun", name: "小淳", gender: "女", style: "明亮活泼" },
+  { id: "longwan", name: "龙婉", gender: "女", style: "温柔端庄" },
+  { id: "longjing", name: "龙婧", gender: "女", style: "亲切甜美" },
+  { id: "longshu", name: "龙书", gender: "男", style: "温润儒雅" },
+  { id: "longshuo", name: "龙硕", gender: "男", style: "自然沉稳" },
+  { id: "longfei", name: "龙飞", gender: "男", style: "激昂磁性" },
 ] as const;
 
-export const DEFAULT_VOICE = "zh-CN-YunxiNeural";
+export const DEFAULT_VOICE = "longxiaochun";
 
 /** 单个分镜 */
 export interface VideoShotItem {

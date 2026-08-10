@@ -3,7 +3,8 @@ import type { NewsCrawler, NewsItem } from "../types";
 
 export const kr36Crawler: NewsCrawler = {
   source: "36氪AI",
-  async crawl(): Promise<{ source: string; items: NewsItem[] }> {
+  category: "ai-news",
+  async crawl(): Promise<{ source: string; category: string; items: NewsItem[] }> {
     const url = "https://36kr.com/information/AI/";
     const resp = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; HugoAI/1.0)" },
@@ -26,6 +27,6 @@ export const kr36Crawler: NewsCrawler = {
       }
     });
 
-    return { source: "36氪AI", items: items.slice(0, 20) };
+    return { source: "36氪AI", category: "ai-news", items: items.slice(0, 20) };
   },
 };

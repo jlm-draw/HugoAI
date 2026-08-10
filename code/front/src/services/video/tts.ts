@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm } from "fs/promises";
 import os from "os";
 import path from "path";
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
+import { BailianTtsProvider } from "./bailian-tts";
 
 /** 字幕句子：文本 + 起止毫秒时间戳 */
 export interface TtsSentence {
@@ -82,9 +83,16 @@ export class EdgeTtsProvider implements TtsProvider {
   }
 }
 
-/** 当前 TTS 实现（未来接入 CosyVoice 时在此按配置切换） */
+/**
+ * 当前 TTS 实现：
+ * - TTS_ENGINE=edge    → Microsoft Edge TTS（免费非官方，兜底用）
+ * - 其余/默认（bailian）→ 阿里百炼 CosyVoice/Qwen-TTS（TTS_MODEL 可换模型）
+ */
 export function getTtsProvider(): TtsProvider {
-  return new EdgeTtsProvider();
+  if ((process.env.TTS_ENGINE ?? "").toLowerCase() === "edge") {
+    return new EdgeTtsProvider();
+  }
+  return new BailianTtsProvider();
 }
 
 function pad(n: number, len: number): string {

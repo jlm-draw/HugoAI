@@ -31,6 +31,7 @@ export async function runCrawlers(crawlers: NewsCrawler[]): Promise<{
               summary: item.summary ?? null,
               url: item.url,
               source: item.source,
+              category: result.category || "ai-news",
               publishedAt: item.publishedAt ?? null,
             },
           });
@@ -41,7 +42,7 @@ export async function runCrawlers(crawlers: NewsCrawler[]): Promise<{
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[crawler] ${crawler.source} error:`, msg);
-      results.push({ source: crawler.source, items: [], error: msg });
+      results.push({ source: crawler.source, category: crawler.category, items: [], error: msg });
     }
   }
 

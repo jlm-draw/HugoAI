@@ -1,6 +1,7 @@
 import { copyFile, mkdir, rm, stat, writeFile } from "fs/promises";
 import path from "path";
 import { audioFilePath } from "@/services/video/audio-store";
+import { nameFromUrl, materialPath } from "@/services/video/material-store";
 import type { ExportManifest } from "./manifest";
 
 /**
@@ -53,6 +54,12 @@ export class MaterialDownloadError extends Error {
 
 async function downloadMaterial(url: string, dest: string, sort: number): Promise<void> {
   try {
+    // 站内 AI 生成素材：直接从本地存储复制，不走网络
+    const localName = nameFromUrl(url);
+    if (localName) {
+      await copyFile(materialPath(localName), dest);
+      return;
+    }
     const resp = await fetch(url, {
       headers: { "User-Agent": UA },
       signal: AbortSignal.timeout(120_000),

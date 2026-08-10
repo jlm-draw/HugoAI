@@ -117,12 +117,15 @@ model NewsArticle {
   summary      String?
   url          String   @unique
   source       String
+  /// 资讯分类，与短视频赛道 code 一一对应（ai-news/novel-promo/emotion/general）
+  category     String   @default("ai-news")
   publishedAt  DateTime?
   createdAt    DateTime @default(now())
 
   videoScripts VideoScript[]
 
   @@index([source])
+  @@index([category])
   @@index([publishedAt])
   @@index([createdAt])
 }

@@ -88,13 +88,13 @@ export function VideoWorkspace({ projectId }: Props) {
     };
   }, [projectId]);
 
-  // 赛道为 AI 资讯解读时，拉取最近资讯供选择（只拉一次）
+  // 按所选赛道拉取对应分类的最近资讯（切换赛道时在下方 onValueChange 里清空旧列表）
   useEffect(() => {
-    if (track !== "ai-news" || newsList.length > 0) return;
+    if (!track) return;
     let ignore = false;
     async function loadNews() {
       try {
-        const res = await fetch("/api/news?page=1&pageSize=50");
+        const res = await fetch(`/api/news?page=1&pageSize=50&category=${track}`);
         const json = await res.json();
         if (!ignore && res.ok) setNewsList(json.articles ?? []);
       } catch {
@@ -105,7 +105,7 @@ export function VideoWorkspace({ projectId }: Props) {
     return () => {
       ignore = true;
     };
-  }, [track, newsList.length]);
+  }, [track]);
 
   function handleSelectNews(id: string | null) {
     setNewsId(id ?? null);
@@ -222,6 +222,7 @@ export function VideoWorkspace({ projectId }: Props) {
               onValueChange={(v: string | null) => {
                 setTrack(v ?? "");
                 setNewsId(null);
+                setNewsList([]);
               }}
             >
               <SelectTrigger>
@@ -241,14 +242,14 @@ export function VideoWorkspace({ projectId }: Props) {
               </SelectContent>
             </Select>
           </div>
-          {track === "ai-news" && (
+          {track && (
             <div className="w-full space-y-1.5 sm:w-72">
               <Label>选择新闻（自动带标题和原文素材）</Label>
               {newsList.length === 0 ? (
                 <p className="rounded-md border border-dashed px-3 py-2 text-xs text-gray-400">
-                  暂无资讯，请先去{" "}
+                  该分类暂无资讯，请先去{" "}
                   <Link href="/news" className="text-blue-600 hover:underline">
-                    AI 资讯
+                    资讯库
                   </Link>{" "}
                   页抓取
                 </p>

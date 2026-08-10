@@ -23,10 +23,12 @@ export async function GET(
 
   try {
     const data = await readFile(audioFilePath(scriptId));
+    // 百炼引擎产出 WAV、Edge 兜底引擎产出 MP3，按文件头嗅探类型
+    const isWav = data.length > 12 && data.toString("ascii", 0, 4) === "RIFF";
     return new Response(data, {
       headers: {
-        "Content-Type": "audio/mpeg",
-        "Content-Disposition": `inline; filename="${scriptId}.mp3"`,
+        "Content-Type": isWav ? "audio/wav" : "audio/mpeg",
+        "Content-Disposition": `inline; filename="${scriptId}.${isWav ? "wav" : "mp3"}`,
         "Cache-Control": "private, max-age=0",
       },
     });

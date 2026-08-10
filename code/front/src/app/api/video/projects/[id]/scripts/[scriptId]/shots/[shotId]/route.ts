@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireVideoAccess } from "@/services/video/guard";
 import { serializeShot } from "@/services/video/serialize";
+import { MATERIAL_URL_PREFIX } from "@/services/video/material-store";
+
+/** 素材/缩略图链接合法性：https 外链（Pexels）或站内 AI 生成素材路径 */
+function isValidMaterialUrl(url: string): boolean {
+  return url.startsWith("https://") || url.startsWith(MATERIAL_URL_PREFIX);
+}
 
 /** PATCH /api/video/projects/[id]/scripts/[scriptId]/shots/[shotId] — 更新分镜素材/搜索词 */
 export async function PATCH(
@@ -40,19 +46,19 @@ export async function PATCH(
     if (body.materialUrl === null) {
       data.materialUrl = null;
       data.materialThumb = null;
-    } else if (typeof body.materialUrl === "string" && body.materialUrl.startsWith("https://")) {
+    } else if (typeof body.materialUrl === "string" && isValidMaterialUrl(body.materialUrl)) {
       data.materialUrl = body.materialUrl.slice(0, 500);
     } else {
-      return NextResponse.json({ error: "素材链接必须是 https 地址" }, { status: 400 });
+      return NextResponse.json({ error: "素材链接必须是 https 地址或站内素材路径" }, { status: 400 });
     }
   }
   if (body.materialThumb !== undefined && data.materialUrl !== null) {
     if (body.materialThumb === null) {
       data.materialThumb = null;
-    } else if (typeof body.materialThumb === "string" && body.materialThumb.startsWith("https://")) {
+    } else if (typeof body.materialThumb === "string" && isValidMaterialUrl(body.materialThumb)) {
       data.materialThumb = body.materialThumb.slice(0, 500);
     } else {
-      return NextResponse.json({ error: "缩略图链接必须是 https 地址" }, { status: 400 });
+      return NextResponse.json({ error: "缩略图链接必须是 https 地址或站内素材路径" }, { status: 400 });
     }
   }
   if (body.materialQuery !== undefined) {

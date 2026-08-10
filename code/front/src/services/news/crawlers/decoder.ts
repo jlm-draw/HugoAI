@@ -3,7 +3,8 @@ import type { NewsCrawler, NewsItem } from "../types";
 
 export const decoderCrawler: NewsCrawler = {
   source: "The Decoder",
-  async crawl(): Promise<{ source: string; items: NewsItem[] }> {
+  category: "ai-news",
+  async crawl(): Promise<{ source: string; category: string; items: NewsItem[] }> {
     const url = "https://the-decoder.com";
     const resp = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; HugoAI/1.0)" },
@@ -25,6 +26,6 @@ export const decoderCrawler: NewsCrawler = {
       }
     });
 
-    return { source: "The Decoder", items: items.slice(0, 20) };
+    return { source: "The Decoder", category: "ai-news", items: items.slice(0, 20) };
   },
 };

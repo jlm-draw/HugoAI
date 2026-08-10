@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { TRACKS } from "@/services/video/types";
 
 interface Article {
   id: string;
@@ -11,6 +13,7 @@ interface Article {
   summary: string | null;
   url: string;
   source: string;
+  category: string;
   publishedAt: string | null;
   createdAt: string;
 }
@@ -27,6 +30,10 @@ const sourceColors: Record<string, string> = {
   "量子位": "bg-green-100 text-green-700 hover:bg-green-100",
   "36氪AI": "bg-orange-100 text-orange-700 hover:bg-orange-100",
   "The Decoder": "bg-purple-100 text-purple-700 hover:bg-purple-100",
+  "百度热搜": "bg-red-100 text-red-700 hover:bg-red-100",
+  "澎湃新闻": "bg-sky-100 text-sky-700 hover:bg-sky-100",
+  "起点畅销榜": "bg-amber-100 text-amber-700 hover:bg-amber-100",
+  "知乎日报": "bg-indigo-100 text-indigo-700 hover:bg-indigo-100",
 };
 
 export function NewsList() {
@@ -34,11 +41,14 @@ export function NewsList() {
   const [loading, setLoading] = useState(true);
   const [crawling, setCrawling] = useState(false);
   const [page, setPage] = useState(1);
+  // "" = 全部；否则为赛道 code（ai-news/novel-promo/emotion/general）
+  const [category, setCategory] = useState("");
 
   // loading 初值为 true；await 前不做同步 setState（react-hooks/set-state-in-effect）
-  async function fetchNews(p: number) {
+  async function fetchNews(p: number, cat: string) {
     try {
-      const res = await fetch(`/api/news?page=${p}&pageSize=20`);
+      const catParam = cat ? `&category=${cat}` : "";
+      const res = await fetch(`/api/news?page=${p}&pageSize=20${catParam}`);
       const json = await res.json();
       setData(json);
     } finally {
@@ -51,15 +61,15 @@ export function NewsList() {
     try {
       await fetch("/api/crawl", { method: "POST" });
       setPage(1);
-      await fetchNews(1);
+      await fetchNews(1, category);
     } finally {
       setCrawling(false);
     }
   }
 
   useEffect(() => {
-    fetchNews(page);
-  }, [page]);
+    fetchNews(page, category);
+  }, [page, category]);
 
   if (loading && !data) {
     return (
@@ -78,7 +88,7 @@ export function NewsList() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">AI 资讯</h1>
+          <h1 className="text-xl font-bold text-gray-800">资讯库</h1>
           <p className="text-sm text-gray-500">
             共 {data?.total ?? 0} 篇文章 · 第 {data?.page ?? 1} 页
           </p>
@@ -87,6 +97,41 @@ export function NewsList() {
           <RefreshCw size={14} className={crawling ? "animate-spin" : ""} />
           {crawling ? "抓取中..." : "立即刷新"}
         </Button>
+      </div>
+
+      {/* 分类筛选（与短视频赛道一致） */}
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        <button
+          onClick={() => {
+            setCategory("");
+            setPage(1);
+          }}
+          className={cn(
+            "rounded-full px-3 py-1 text-xs",
+            category === ""
+              ? "bg-blue-600 text-white"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          )}
+        >
+          全部
+        </button>
+        {TRACKS.map((t) => (
+          <button
+            key={t.code}
+            onClick={() => {
+              setCategory(t.code);
+              setPage(1);
+            }}
+            className={cn(
+              "rounded-full px-3 py-1 text-xs",
+              category === t.code
+                ? "bg-blue-600 text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            )}
+          >
+            {t.emoji} {t.name}
+          </button>
+        ))}
       </div>
 
       <div className="space-y-3">

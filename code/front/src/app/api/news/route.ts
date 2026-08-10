@@ -6,9 +6,13 @@ export async function GET(request: Request) {
   const page = parseInt(searchParams.get("page") || "1");
   const pageSize = parseInt(searchParams.get("pageSize") || "20");
   const source = searchParams.get("source");
+  const category = searchParams.get("category");
   const skip = (page - 1) * pageSize;
 
-  const where = source ? { source } : {};
+  const where = {
+    ...(source ? { source } : {}),
+    ...(category ? { category } : {}),
+  };
   const [articles, total] = await Promise.all([
     prisma.newsArticle.findMany({
       where,

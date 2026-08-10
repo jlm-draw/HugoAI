@@ -161,11 +161,17 @@ export function ScriptDetail({
                     <td className="px-2 py-1.5">
                       {s.materialUrl ? (
                         <div className="group/mat relative h-16 w-9">
-                          <img
-                            src={s.materialThumb ?? ""}
-                            alt=""
-                            className="h-16 w-9 rounded object-cover"
-                          />
+                          {s.materialThumb ? (
+                            <img
+                              src={s.materialThumb}
+                              alt=""
+                              className="h-16 w-9 rounded object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-16 w-9 items-center justify-center rounded bg-violet-50 text-[10px] font-medium text-violet-500">
+                              AI
+                            </div>
+                          )}
                           <div className="absolute inset-0 hidden flex-col items-center justify-center gap-0.5 rounded bg-black/50 group-hover/mat:flex">
                             <button
                               onClick={() => setPickerShot(s)}
@@ -186,7 +192,7 @@ export function ScriptDetail({
                           onClick={() => setPickerShot(s)}
                           className="rounded border border-dashed px-1.5 py-1 text-[11px] text-gray-400 hover:border-blue-300 hover:text-blue-500"
                         >
-                          选素材
+                          选/生成素材
                         </button>
                       )}
                     </td>

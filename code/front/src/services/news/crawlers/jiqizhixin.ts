@@ -3,7 +3,8 @@ import type { NewsCrawler, NewsItem } from "../types";
 
 export const jiqizhixinCrawler: NewsCrawler = {
   source: "机器之心",
-  async crawl(): Promise<{ source: string; items: NewsItem[] }> {
+  category: "ai-news",
+  async crawl(): Promise<{ source: string; category: string; items: NewsItem[] }> {
     const url = "https://www.jiqizhixin.com";
     const resp = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; HugoAI/1.0)" },
@@ -26,6 +27,6 @@ export const jiqizhixinCrawler: NewsCrawler = {
       }
     });
 
-    return { source: "机器之心", items: items.slice(0, 20) };
+    return { source: "机器之心", category: "ai-news", items: items.slice(0, 20) };
   },
 };

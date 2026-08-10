@@ -19,7 +19,7 @@ const navItems = [
   { href: "/ppt", label: "PPT 生成", icon: FileText },
   { href: "/novel", label: "小说写作", icon: BookOpen },
   { href: "/video", label: "视频生成", icon: Video },
-  { href: "/news", label: "AI 资讯", icon: Newspaper },
+  { href: "/news", label: "资讯库", icon: Newspaper },
 ];
 
 const adminItems = [
