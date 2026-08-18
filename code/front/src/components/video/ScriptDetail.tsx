@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Copy } from "lucide-react";
+import { Copy, Pencil, Trash2, Check, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import {
   trackEmoji,
@@ -41,6 +42,66 @@ export function ScriptDetail({
   }
 
   const [pickerShot, setPickerShot] = useState<VideoShotItem | null>(null);
+  const [editingShotId, setEditingShotId] = useState<string | null>(null);
+  const [editVisual, setEditVisual] = useState("");
+  const [editLine, setEditLine] = useState("");
+  const [savingShotId, setSavingShotId] = useState<string | null>(null);
+  const [deletingShotId, setDeletingShotId] = useState<string | null>(null);
+
+  function startEditShot(shot: VideoShotItem) {
+    setEditingShotId(shot.id);
+    setEditVisual(shot.visual);
+    setEditLine(shot.line);
+  }
+
+  function cancelEditShot() {
+    setEditingShotId(null);
+    setEditVisual("");
+    setEditLine("");
+  }
+
+  async function saveShotEdit(shotId: string) {
+    setSavingShotId(shotId);
+    try {
+      const res = await fetch(
+        `/api/video/projects/${projectId}/scripts/${script.id}/shots/${shotId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visual: editVisual, line: editLine }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "保存失败");
+      await onChanged();
+      cancelEditShot();
+      toast.add({ type: "success", title: "分镜已更新" });
+    } catch (err) {
+      toast.add({ type: "error", title: err instanceof Error ? err.message : "保存失败" });
+    } finally {
+      setSavingShotId(null);
+    }
+  }
+
+  async function deleteShot(shotId: string) {
+    if (deletingShotId) return;
+    if (!window.confirm("确定删除这条分镜吗？删除后不可恢复。")) return;
+    setDeletingShotId(shotId);
+    try {
+      const res = await fetch(
+        `/api/video/projects/${projectId}/scripts/${script.id}/shots/${shotId}`,
+        { method: "DELETE" }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "删除失败");
+      await onChanged();
+      toast.add({ type: "success", title: "分镜已删除" });
+    } catch (err) {
+      toast.add({ type: "error", title: err instanceof Error ? err.message : "删除失败" });
+    } finally {
+      setDeletingShotId(null);
+    }
+  }
 
   async function removeMaterial(shotId: string) {
     try {
@@ -149,55 +210,121 @@ export function ScriptDetail({
                   <th className="px-2 py-1.5 text-left font-medium">台词</th>
                   <th className="w-14 px-2 py-1.5 text-right font-medium">秒</th>
                   <th className="w-16 px-2 py-1.5 text-left font-medium">素材</th>
+                  <th className="w-20 px-2 py-1.5 text-center font-medium">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {script.shots.map((s) => (
-                  <tr key={s.id} className="align-top">
-                    <td className="px-2 py-1.5 text-gray-400">{s.sort}</td>
-                    <td className="px-2 py-1.5 text-gray-600">{s.visual}</td>
-                    <td className="px-2 py-1.5 text-gray-700">{s.line}</td>
-                    <td className="px-2 py-1.5 text-right text-gray-500">{s.duration}</td>
-                    <td className="px-2 py-1.5">
-                      {s.materialUrl ? (
-                        <div className="group/mat relative h-16 w-9">
-                          {s.materialThumb ? (
-                            <img
-                              src={s.materialThumb}
-                              alt=""
-                              className="h-16 w-9 rounded object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-16 w-9 items-center justify-center rounded bg-violet-50 text-[10px] font-medium text-violet-500">
-                              AI
+                {script.shots.map((s) => {
+                  const isEditing = editingShotId === s.id;
+                  return (
+                    <tr key={s.id} className={`align-top ${isEditing ? "bg-blue-50/50" : ""}`}>
+                      <td className="px-2 py-1.5 text-gray-400">{s.sort}</td>
+                      <td className="px-2 py-1.5 text-gray-600">
+                        {isEditing ? (
+                          <Textarea
+                            value={editVisual}
+                            onChange={(e) => setEditVisual(e.target.value)}
+                            className="min-h-12 text-xs"
+                            rows={2}
+                          />
+                        ) : (
+                          s.visual
+                        )}
+                      </td>
+                      <td className="px-2 py-1.5 text-gray-700">
+                        {isEditing ? (
+                          <Textarea
+                            value={editLine}
+                            onChange={(e) => setEditLine(e.target.value)}
+                            className="min-h-12 text-xs"
+                            rows={2}
+                          />
+                        ) : (
+                          s.line
+                        )}
+                      </td>
+                      <td className="px-2 py-1.5 text-right text-gray-500">{s.duration}</td>
+                      <td className="px-2 py-1.5">
+                        {s.materialUrl ? (
+                          <div className="group/mat relative h-16 w-9">
+                            {s.materialThumb ? (
+                              <img
+                                src={s.materialThumb}
+                                alt=""
+                                className="h-16 w-9 rounded object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-16 w-9 items-center justify-center rounded bg-violet-50 text-[10px] font-medium text-violet-500">
+                                AI
+                              </div>
+                            )}
+                            <div className="absolute inset-0 hidden flex-col items-center justify-center gap-0.5 rounded bg-black/50 group-hover/mat:flex">
+                              <button
+                                onClick={() => setPickerShot(s)}
+                                className="text-[10px] text-white hover:underline"
+                              >
+                                换
+                              </button>
+                              <button
+                                onClick={() => removeMaterial(s.id)}
+                                className="text-[10px] text-white hover:underline"
+                              >
+                                移除
+                              </button>
                             </div>
-                          )}
-                          <div className="absolute inset-0 hidden flex-col items-center justify-center gap-0.5 rounded bg-black/50 group-hover/mat:flex">
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setPickerShot(s)}
+                            className="rounded border border-dashed px-1.5 py-1 text-[11px] text-gray-400 hover:border-blue-300 hover:text-blue-500"
+                          >
+                            选/生成素材
+                          </button>
+                        )}
+                      </td>
+                      <td className="px-2 py-1.5">
+                        {isEditing ? (
+                          <div className="flex items-center justify-center gap-1">
                             <button
-                              onClick={() => setPickerShot(s)}
-                              className="text-[10px] text-white hover:underline"
+                              onClick={() => saveShotEdit(s.id)}
+                              disabled={savingShotId === s.id}
+                              className="rounded p-1 text-green-600 hover:bg-green-50 disabled:opacity-50"
+                              title="保存"
                             >
-                              换
+                              <Check size={14} />
                             </button>
                             <button
-                              onClick={() => removeMaterial(s.id)}
-                              className="text-[10px] text-white hover:underline"
+                              onClick={cancelEditShot}
+                              disabled={savingShotId === s.id}
+                              className="rounded p-1 text-gray-400 hover:bg-gray-100 disabled:opacity-50"
+                              title="取消"
                             >
-                              移除
+                              <X size={14} />
                             </button>
                           </div>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setPickerShot(s)}
-                          className="rounded border border-dashed px-1.5 py-1 text-[11px] text-gray-400 hover:border-blue-300 hover:text-blue-500"
-                        >
-                          选/生成素材
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                        ) : (
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => startEditShot(s)}
+                              className="rounded p-1 text-blue-500 hover:bg-blue-50"
+                              title="编辑分镜"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            <button
+                              onClick={() => deleteShot(s.id)}
+                              disabled={deletingShotId === s.id}
+                              className="rounded p-1 text-red-400 hover:bg-red-50 disabled:opacity-50"
+                              title="删除分镜"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
