@@ -1,13 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Clapperboard, Loader2, Search, Sparkles, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+import { VISUAL_PROMPT_OPTIONS } from "@/services/video/types";
 
 interface MaterialVideo {
   id: string;
@@ -33,6 +42,77 @@ interface Props {
   onSaved: () => Promise<void>;
 }
 
+/** 六段式画面描述的状态 */
+interface VisualPromptParts {
+  cameraMove: string;
+  scene: string;
+  action: string;
+  mood: string;
+  style: string;
+  constraints: string;
+}
+
+const DEFAULT_PARTS: VisualPromptParts = {
+  cameraMove: "固定机位",
+  scene: "白天商业街",
+  action: "商超卷帘门拉下闭店，周边摊贩全部收摊，街道空旷冷清",
+  mood: "冷清萧条",
+  style: "纪实摄影",
+  constraints: "无 logo、无水印、无文字字幕、画面流畅、人物面部模糊处理",
+};
+
+/**
+ * 渲染某段选项：预设列表 + （若当前值不在预设中）作为自定义选项追加。
+ * 确保用户编辑分镜后，AI 生成素材时能看到自己写的实际内容。
+ */
+function renderOptions(
+  presets: readonly { code: string; name: string }[],
+  currentValue: string,
+) {
+  const inPresets = presets.some((o) => o.code === currentValue);
+  return (
+    <>
+      {presets.map((opt) => (
+        <SelectItem key={opt.code} value={opt.code} className="text-sm">
+          {opt.name}
+        </SelectItem>
+      ))}
+      {!inPresets && currentValue && (
+        <SelectItem value={currentValue} className="text-sm text-blue-600">
+          ✏️ {currentValue}
+        </SelectItem>
+      )}
+    </>
+  );
+}
+
+/**
+ * 从 AI 生成的 visual 字符串中解析六段式各段。
+ * AI 输出用中文逗号分隔，且「核心动作」段本身可能包含多个逗号，
+ * 所以按位置提取：首段=运镜、次段=场景、末段=约束、倒二=风格、倒三=氛围、中间全部=动作。
+ * 若某段与预设选项不匹配则保留原值（UI 会将其作为「自定义」选项展示）。
+ */
+function parseVisualFromShot(visual: string): VisualPromptParts {
+  if (!visual) return DEFAULT_PARTS;
+  const segs = visual
+    .split(/[,，]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (segs.length < 6) return DEFAULT_PARTS;
+
+  const cameraMove = segs[0];
+  const scene = segs[1];
+  const constraints = segs[segs.length - 1];
+  const style = segs[segs.length - 2];
+  const mood = segs[segs.length - 3];
+  const action = segs.slice(2, segs.length - 3).join("，");
+
+  // 若解析出的 action 为空（理论上不会发生），回退默认
+  if (!action) return DEFAULT_PARTS;
+
+  return { cameraMove, scene, action, mood, style, constraints };
+}
+
 export function MaterialPicker({ projectId, scriptId, shot, open, onClose, onSaved }: Props) {
   const [mode, setMode] = useState<"search" | "generate">("search");
 
@@ -50,11 +130,18 @@ export function MaterialPicker({ projectId, scriptId, shot, open, onClose, onSav
 
   // ============ AI 生成素材（通义万相） ============
   const [genPrompt, setGenPrompt] = useState(() => shot.visual);
+  const [manualPrompt, setManualPrompt] = useState<string | null>(null);
   const [genStatus, setGenStatus] = useState<GenStatus>("idle");
   const [genFileUrl, setGenFileUrl] = useState<string | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
   const genVideoRef = useRef<HTMLVideoElement | null>(null);
   const cancelledRef = useRef(false);
+
+  // ============ 六段式画面描述选择器状态 ============
+  const [visualParts, setVisualParts] = useState<VisualPromptParts>(() =>
+    parseVisualFromShot(shot.visual)
+  );
+  const [allowCustomEdit, setAllowCustomEdit] = useState(false);
 
   useEffect(() => {
     cancelledRef.current = false;
@@ -62,6 +149,14 @@ export function MaterialPicker({ projectId, scriptId, shot, open, onClose, onSav
       cancelledRef.current = true;
     };
   }, []);
+
+  // 实时拼接最终 prompt
+  const composedPrompt = useMemo(() => {
+    return `${visualParts.cameraMove}，${visualParts.scene}，${visualParts.action}，${visualParts.mood}，${visualParts.style}，${visualParts.constraints}`;
+  }, [visualParts]);
+
+  // 实际使用的 prompt：手动编辑时用 manualPrompt，否则用 composedPrompt
+  const effectivePrompt = allowCustomEdit ? (manualPrompt ?? genPrompt) : composedPrompt;
 
   const doSearch = useCallback(async (page: number, append: boolean, q: string, ori: string) => {
     if (!q.trim()) {
@@ -150,7 +245,7 @@ export function MaterialPicker({ projectId, scriptId, shot, open, onClose, onSav
   }
 
   async function startGenerate() {
-    const prompt = genPrompt.trim();
+    const prompt = effectivePrompt.trim();
     if (!prompt) {
       toast.add({ type: "error", title: "请输入画面描述" });
       return;
@@ -158,6 +253,10 @@ export function MaterialPicker({ projectId, scriptId, shot, open, onClose, onSav
     setGenStatus("submitting");
     setGenError(null);
     setGenFileUrl(null);
+    // 如果当前是手动编辑模式，同步更新 genPrompt 以便重新生成时使用相同基础
+    if (allowCustomEdit) {
+      setGenPrompt(effectivePrompt);
+    }
     try {
       const res = await fetch("/api/video/materials/generate", {
         method: "POST",
@@ -262,6 +361,17 @@ export function MaterialPicker({ projectId, scriptId, shot, open, onClose, onSav
     }
   }
 
+  /** 处理单段选择变化 */
+  function handlePartChange<K extends keyof VisualPromptParts>(key: K, value: string | null) {
+    if (!value) return;
+    setVisualParts((prev) => ({ ...prev, [key]: value }));
+  }
+
+  /** 不选素材，直接关闭 */
+  function skipMaterial() {
+    onClose();
+  }
+
   return (
     <Dialog
       open={open}
@@ -269,9 +379,14 @@ export function MaterialPicker({ projectId, scriptId, shot, open, onClose, onSav
         if (!o) onClose();
       }}
     >
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>素材 — 镜头 #{shot.sort}</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>素材 — 镜头 #{shot.sort}</DialogTitle>
+            <Button variant="outline" size="sm" onClick={skipMaterial} className="h-7 text-xs">
+              不选素材
+            </Button>
+          </div>
           <p className="line-clamp-1 text-xs text-gray-400">画面：{shot.visual}</p>
         </DialogHeader>
 
@@ -427,16 +542,130 @@ export function MaterialPicker({ projectId, scriptId, shot, open, onClose, onSav
           </div>
         ) : (
           <div className="space-y-3">
-            {/* 画面描述 */}
+            {/* 六段式画面描述选择器 */}
             <div className="space-y-1.5">
-              <Textarea
-                value={genPrompt}
-                onChange={(e) => setGenPrompt(e.target.value)}
-                rows={3}
-                maxLength={500}
-                placeholder="描述这个镜头的画面，如：夜晚的城市街头，霓虹灯闪烁，行人匆匆走过，镜头缓慢推进"
-                disabled={genStatus === "running" || genStatus === "submitting"}
-              />
+              <Label className="text-xs font-medium text-gray-700">画面描述（六段式公式）</Label>
+              <div className="grid grid-cols-3 gap-3">
+                {/* 第一行 */}
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-gray-500">镜头运镜</Label>
+                  <Select
+                    value={visualParts.cameraMove}
+                    onValueChange={(v) => handlePartChange("cameraMove", v)}
+                    disabled={genStatus === "running" || genStatus === "submitting"}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="镜头运镜" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {renderOptions(VISUAL_PROMPT_OPTIONS.cameraMove, visualParts.cameraMove)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-gray-500">画面主体场景</Label>
+                  <Select
+                    value={visualParts.scene}
+                    onValueChange={(v) => handlePartChange("scene", v)}
+                    disabled={genStatus === "running" || genStatus === "submitting"}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="画面主体场景" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {renderOptions(VISUAL_PROMPT_OPTIONS.scene, visualParts.scene)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-gray-500">核心动作/状态</Label>
+                  <Select
+                    value={visualParts.action}
+                    onValueChange={(v) => handlePartChange("action", v)}
+                    disabled={genStatus === "running" || genStatus === "submitting"}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="核心动作/状态" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {renderOptions(VISUAL_PROMPT_OPTIONS.action, visualParts.action)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* 第二行 */}
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-gray-500">氛围情绪</Label>
+                  <Select
+                    value={visualParts.mood}
+                    onValueChange={(v) => handlePartChange("mood", v)}
+                    disabled={genStatus === "running" || genStatus === "submitting"}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="氛围情绪" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {renderOptions(VISUAL_PROMPT_OPTIONS.mood, visualParts.mood)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-gray-500">画质风格</Label>
+                  <Select
+                    value={visualParts.style}
+                    onValueChange={(v) => handlePartChange("style", v)}
+                    disabled={genStatus === "running" || genStatus === "submitting"}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="画质风格" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {renderOptions(VISUAL_PROMPT_OPTIONS.style, visualParts.style)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-gray-500">约束条件</Label>
+                  <Select
+                    value={visualParts.constraints}
+                    onValueChange={(v) => handlePartChange("constraints", v)}
+                    disabled={genStatus === "running" || genStatus === "submitting"}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="约束条件" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {renderOptions(VISUAL_PROMPT_OPTIONS.constraints, visualParts.constraints)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {/* 预览/自定义编辑区 */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium text-gray-700">最终画面提示语</Label>
+                  <button
+                    onClick={() => setAllowCustomEdit(!allowCustomEdit)}
+                    className="text-[11px] text-blue-600 hover:underline"
+                  >
+                    {allowCustomEdit ? "切换为选择器" : "手动编辑"}
+                  </button>
+                </div>
+                {allowCustomEdit ? (
+                  <Textarea
+                    value={manualPrompt ?? composedPrompt}
+                    onChange={(e) => setManualPrompt(e.target.value)}
+                    rows={2}
+                    maxLength={500}
+                    placeholder="在此手动编辑画面描述..."
+                    disabled={genStatus === "running" || genStatus === "submitting"}
+                    className="text-xs"
+                  />
+                ) : (
+                  <div className="rounded-md border bg-gray-50 px-3 py-2 text-xs leading-relaxed text-gray-700">
+                    {composedPrompt}
+                  </div>
+                )}
+              </div>
               <p className="text-[11px] text-gray-400">
                 通义万相文生视频 · 竖屏 9:16 · 5 秒 720P · 生成约需 1-3 分钟（有 API 费用）
               </p>
