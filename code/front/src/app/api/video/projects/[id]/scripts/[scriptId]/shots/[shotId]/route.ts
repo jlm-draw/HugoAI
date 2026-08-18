@@ -3,13 +3,14 @@ import { prisma } from "@/lib/db";
 import { requireVideoAccess } from "@/services/video/guard";
 import { serializeShot } from "@/services/video/serialize";
 import { MATERIAL_URL_PREFIX } from "@/services/video/material-store";
+import { syncNarrationFromShots } from "@/services/video/shot-narration";
 
 /** 素材/缩略图链接合法性：https 外链（Pexels）或站内 AI 生成素材路径 */
 function isValidMaterialUrl(url: string): boolean {
   return url.startsWith("https://") || url.startsWith(MATERIAL_URL_PREFIX);
 }
 
-/** PATCH /api/video/projects/[id]/scripts/[scriptId]/shots/[shotId] — 更新分镜素材/搜索词/画面/台词 */
+/** PATCH /api/video/projects/[id]/scripts/[scriptId]/shots/[shotId] — 更新分镜素材/搜索词 */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string; scriptId: string; shotId: string }> }
@@ -98,8 +99,14 @@ export async function PATCH(
   }
 
   const updated = await prisma.videoShot.update({ where: { id: shotId }, data });
-  // 素材变更影响导出缓存：显式 touch script.updatedAt（缓存统一失效信号）
-  await prisma.videoScript.update({ where: { id: scriptId }, data: { updatedAt: new Date() } });
+
+  // 如果台词被修改，同步更新脚本口播稿（确保配音/SRT 与分镜表一致）
+  if (data.line !== undefined) {
+    await syncNarrationFromShots(scriptId);
+  } else {
+    // 其它字段变更：显式 touch script.updatedAt（缓存统一失效信号）
+    await prisma.videoScript.update({ where: { id: scriptId }, data: { updatedAt: new Date() } });
+  }
   return NextResponse.json({ shot: serializeShot(updated) });
 }
 
@@ -124,7 +131,7 @@ export async function DELETE(
   }
 
   await prisma.videoShot.delete({ where: { id: shotId } });
-  // 分镜变更影响导出缓存：touch script.updatedAt
-  await prisma.videoScript.update({ where: { id: scriptId }, data: { updatedAt: new Date() } });
+  // 分镜删除后同步口播稿（确保配音/SRT 与当前分镜表一致）
+  await syncNarrationFromShots(scriptId);
   return NextResponse.json({ success: true });
 }

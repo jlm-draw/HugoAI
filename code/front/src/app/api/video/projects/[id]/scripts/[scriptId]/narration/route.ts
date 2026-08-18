@@ -4,6 +4,14 @@ import { requireVideoAccess } from "@/services/video/guard";
 import { saveAudio } from "@/services/video/audio-store";
 import { getTtsProvider, toSrt } from "@/services/video/tts";
 import { VOICES } from "@/services/video/types";
+import { syncNarrationFromShots } from "@/services/video/shot-narration";
+
+/** 把上游 API 的英文报错转成用户可读的中文提示（原始信息仍会进服务端日志） */
+function friendlyTtsError(message: string): string {
+  if (/rate limit|throttling/i.test(message)) return "语音合成服务限流，请稍后再试";
+  if (/url error/i.test(message)) return "语音合成接口配置有误，请联系管理员检查 TTS 配置";
+  return message;
+}
 
 /** POST /api/video/projects/[id]/scripts/[scriptId]/narration — 生成 TTS 配音 + SRT 字幕（同步，约 10-30 秒） */
 export async function POST(
@@ -22,6 +30,9 @@ export async function POST(
     return NextResponse.json({ error: "脚本不存在" }, { status: 404 });
   }
 
+  // 配音前先从当前分镜表同步口播稿 —— 用户可能删除/修改了分镜，script.narration 需要更新
+  const syncedNarration = await syncNarrationFromShots(scriptId);
+
   let body: { voice?: unknown };
   try {
     body = await request.json();
@@ -33,12 +44,12 @@ export async function POST(
   if (!VOICES.some((v) => v.id === voice)) {
     return NextResponse.json({ error: "请选择有效的音色" }, { status: 400 });
   }
-  if (!script.narration.trim()) {
-    return NextResponse.json({ error: "该脚本没有口播稿，无法配音" }, { status: 400 });
+  if (!syncedNarration?.trim()) {
+    return NextResponse.json({ error: "该脚本没有口播稿（分镜表为空或无台词），无法配音" }, { status: 400 });
   }
 
   try {
-    const { audio, sentences } = await getTtsProvider().synthesize(script.narration, voice);
+    const { audio, sentences } = await getTtsProvider().synthesize(syncedNarration, voice);
     await saveAudio(scriptId, audio);
     const srt = toSrt(sentences);
     const audioUrl = `/api/video/projects/${id}/scripts/${scriptId}/audio`;
@@ -50,7 +61,8 @@ export async function POST(
 
     return NextResponse.json({ narration: { audioUrl, srt, voice } });
   } catch (err) {
+    console.error("[narration] TTS 合成失败:", err);
     const message = err instanceof Error ? err.message : "语音合成失败，请重试";
-    return NextResponse.json({ error: message }, { status: 502 });
+    return NextResponse.json({ error: friendlyTtsError(message) }, { status: 502 });
   }
 }
